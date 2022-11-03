@@ -147,7 +147,8 @@ class Table:
 
         for i, _ in enumerate(self.columns):
             self.columns[i].append(row[i])
-            self._cnt_rows += 1
+
+        self._cnt_rows += 1
 
     def read_row(self, index: int) -> Row:
         """Returns the row at a given index.
@@ -294,20 +295,20 @@ def read_transactions_csv(path: str, skip_header: bool = True) -> Table:
     """
     col_names = tuple(["transaction_id", "user_id", "transaction_amount", "transaction_category_id"])
 
-    result = Table(tuple([Column() * len(col_names)]), column_names=col_names)
+    result = Table(tuple([[]] * len(col_names)), column_names=col_names)
 
     cnt_row = 0
     with open(path, "r") as f:
-        cnt_row += 1
         for line in f:
+            cnt_row += 1
             if cnt_row == 1 and skip_header:
                 continue
 
             lst_columns: List[str] = line.rstrip().split(",")
-            if len(lst_columns) < 2:
+            if len(lst_columns) < 6:
                 raise RowParsingError("cannot parse the row %d" % cnt_row)
 
-            if not _to_bool(lst_columns[3]):
+            if _to_bool(lst_columns[3]):
                 continue
 
             try:
@@ -316,7 +317,7 @@ def read_transactions_csv(path: str, skip_header: bool = True) -> Table:
                 raise RowParsingError("failed to decode transaction_id for the row %d" % cnt_row) from ex
 
             try:
-                user_id = UUID(lst_columns[3])
+                user_id = UUID(lst_columns[2])
             except Exception as ex:
                 raise RowParsingError("failed to decode user_id for the row %d" % cnt_row) from ex
 
