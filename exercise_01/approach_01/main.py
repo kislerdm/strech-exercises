@@ -17,7 +17,7 @@ CREATE TABLE users (
     is_active BOOLEAN
 );
 
-Want:
+WANT:
 - to calculate the following aggregation:
 
 SELECT t.transaction_category_id,
@@ -32,10 +32,18 @@ ORDER BY sum_amount DESC;
 
 - to send the result to stdout
 """
+import io
+import sys
 from typing import Any, List, Dict, Tuple
 
-Row = Tuple[Any]
 Column = List[Any]
+
+
+class Row(Tuple[Any]):
+    """Table ``Row``."""
+
+    def __str__(self) -> str:
+        return ",".join((str(v) for v in self))
 
 
 class Table:
@@ -59,6 +67,21 @@ class Table:
         self.columns: Tuple[Column] = columns
         self.column_names: Tuple[str] = column_names
         self.cnt_rows: int = len(self.columns[0])
+        self._iter = 0
+
+    def print_head(self, limit: int = 10, output: io.TextIOBase = sys.stdout) -> None:
+        """Prints the first rows elements.
+
+        Args:
+            limit (int): How many rows to be printed.
+            output (TextIO): Writer interface.
+        """
+        print(",".join(self.column_names), file=output)
+
+        i = 0
+        while i < limit and i < self.cnt_rows:
+            print(self.read_row(i), file=output)
+            i += 1
 
     def column_by_name(self, column_name: str) -> Column:
         """Returns the column by its name.
@@ -117,10 +140,10 @@ class Table:
             The ``Row`` object.
 
         Raises:
-            ValueError: when the index is not found.
+            IndexError: when the index is not found.
         """
         if index > self.cnt_rows or index < 0:
-            raise ValueError("index is not found")
+            raise IndexError("index is not found")
 
         return Row(column[index] for column in self.columns)
 
