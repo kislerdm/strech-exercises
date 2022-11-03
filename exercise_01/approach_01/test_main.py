@@ -1,3 +1,5 @@
+from uuid import UUID
+
 import pytest
 
 from exercise_01.approach_01.main import Table, read_users_csv, Column, _to_bool
@@ -27,7 +29,8 @@ b1ee6da9-aca5-4bc6-bcfb-21ace2185055,true
 @pytest.fixture()
 def table_users() -> Table:
     return Table(
-        columns=tuple(Column([["9f709688-326d-4834-8075-1a477d590af7", "b1ee6da9-aca5-4bc6-bcfb-21ace2185055"]])),
+        columns=tuple(
+            Column([[UUID("9f709688-326d-4834-8075-1a477d590af7"), UUID("b1ee6da9-aca5-4bc6-bcfb-21ace2185055")]])),
         column_names=tuple(["user_id"]),
     )
 

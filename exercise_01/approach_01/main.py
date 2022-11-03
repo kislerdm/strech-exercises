@@ -70,10 +70,22 @@ class Table:
         self.columns: Tuple[Column] = columns
         self.column_names: Tuple[str] = column_names
         self._cnt_rows: int = len(self.columns[0])
-        self._iter = 0
 
     def __len__(self):
         return self._cnt_rows
+
+    def __eq__(self, other: "Table") -> bool:
+        if len(self) != len(other):
+            return False
+
+        if len(set(self.column_names).difference(set(other.column_names))) > 0:
+            return False
+
+        for col_l, col_r in zip(self.columns, other.columns):
+            if len(set(col_l).difference(set(col_r))) > 0:
+                return False
+
+        return True
 
     def print_head(self, limit: int = 10, output: io.TextIOBase = sys.stdout) -> None:
         """Prints the first rows elements.
@@ -135,6 +147,7 @@ class Table:
 
         for i, _ in enumerate(self.columns):
             self.columns[i].append(row[i])
+            self._cnt_rows += 1
 
     def read_row(self, index: int) -> Row:
         """Returns the row at a given index.
