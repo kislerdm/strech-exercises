@@ -34,77 +34,6 @@ ORDER BY sum_amount DESC;
 """
 from typing import Any, List, Dict, Tuple
 
-
-class RowParsingError(Exception):
-    """Defines the error thrown when a csv encoded row parsing error happened"""
-
-
-# class Row:
-#     """Table ``Row``"""
-#
-#     @abstractmethod
-#     def parse_csv_row(self, row: str) -> None:
-#         """Parses csv encoded row.
-#
-#         Args:
-#             row (str): Row as csv encoded string.
-#         """
-#         pass
-#
-#     def __init__(self, raw_str: str) -> None:
-#         """Initialises table's ``Row``.
-#
-#         Args:
-#             raw_str (str): Row as csv encoded string.
-#
-#         Raises:
-#             RowParsingError: when csv encoded string parsing error happened.
-#         """
-#         try:
-#             self.parse_csv_row(raw_str)
-#         except Exception as ex:
-#             raise RowParsingError(ex) from ex
-#
-#
-# class RowUsers(Row):
-#     def parse_csv_row(self, row: str) -> None:
-#         raise NotImplemented("todo")
-#
-#     def __init__(self, raw_str: str):
-#         """Reads a user from csv encoded string if it's an active user."""
-#         self.user_id: UUID = UUID(bytes=bytes(0), version=4)
-#
-#         super().__init__(raw_str)
-#
-#
-# class RowTransactions(Row):
-#     def parse_csv_row(self, row: str) -> None:
-#         raise NotImplemented("todo")
-#
-#     def __init__(self, raw_str: str):
-#         """Reads a transaction from csv encoded string if it's not blocked."""
-#         self.transaction_id: UUID = UUID(bytes=bytes(0), version=4)
-#         self.user_id: UUID = UUID(bytes=bytes(0), version=4)
-#         self.transaction_amount: int = 0
-#         self.transaction_category_id: int = 0
-#
-#         super().__init__(raw_str)
-
-
-# @dataclass
-# class Column:
-#     """Defines table ``Column``"""
-#     name: str
-#     values: List[Any]
-#
-#     def sort(self, desc: bool = False) -> None:
-#         """Sort values.
-#
-#         Args:
-#             desc (bool): Sort in descending order.
-#         """
-#         self.values.sort(reverse=desc)
-
 Row = Tuple[Any]
 Column = List[Any]
 
@@ -130,23 +59,6 @@ class Table:
         self.columns: Tuple[Column] = columns
         self.column_names: Tuple[str] = column_names
         self.cnt_rows: int = len(self.columns[0])
-
-    def column_by_index(self, column_index: int) -> Column:
-        """Returns the column by its index.
-
-        Args:
-            column_index (int): Column index.
-
-        Returns:
-            Column.
-
-        Raises:
-            KeyError: when column is not found.
-        """
-        if column_index < 0 or column_index > len(self.columns):
-            raise KeyError("column not found")
-
-        return self.columns[column_index]
 
     def column_by_name(self, column_name: str) -> Column:
         """Returns the column by its name.
@@ -211,29 +123,6 @@ class Table:
             raise ValueError("index is not found")
 
         return Row(column[index] for column in self.columns)
-
-    def pop(self, column_name: str) -> Column:
-        """Removes column by its name and returns it
-
-        Args:
-            column_name (str): Column name.
-
-        Returns:
-            The ``Column`` object.
-
-        Raises:
-            KeyError: when column is not found.
-        """
-        result: Column = self.column_by_name(column_name)
-
-        self.columns = Column(
-            column for i, column in enumerate(self.columns)
-            if i != self._get_column_index(column_name)
-        )
-
-        self.column_names = tuple(v for v in self.column_names if v != column_name)
-
-        return result
 
     def group_by(self, column_name: str) -> Dict[str, "Table"]:
         """Groups the table by column.
@@ -330,6 +219,10 @@ def main(path_users: str, path_transactions: str):
 
     users: Table = read_users_csv(path_users)
     transactions: Table = read_transactions_csv(path_transactions)
+
+    transactions_grouped_by_user = transactions.group_by("user_id")
+
+    set(users.column_by_name("user_id"))
 
     # join_map = join(data_transactions, data_users, ("user_id", "user_id"))
     # result = join_reduce(join_map)
