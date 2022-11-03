@@ -33,6 +33,7 @@ ORDER BY sum_amount DESC;
 - to send the result to stdout
 """
 import io
+import os
 import sys
 from typing import Any, List, Dict, Tuple
 
@@ -66,8 +67,11 @@ class Table:
 
         self.columns: Tuple[Column] = columns
         self.column_names: Tuple[str] = column_names
-        self.cnt_rows: int = len(self.columns[0])
+        self._cnt_rows: int = len(self.columns[0])
         self._iter = 0
+
+    def __len__(self):
+        return self._cnt_rows
 
     def print_head(self, limit: int = 10, output: io.TextIOBase = sys.stdout) -> None:
         """Prints the first rows elements.
@@ -79,7 +83,7 @@ class Table:
         print(",".join(self.column_names), file=output)
 
         i = 0
-        while i < limit and i < self.cnt_rows:
+        while i < limit and i < len(self):
             print(self.read_row(i), file=output)
             i += 1
 
@@ -142,7 +146,7 @@ class Table:
         Raises:
             IndexError: when the index is not found.
         """
-        if index > self.cnt_rows or index < 0:
+        if index > len(self) or index < 0:
             raise IndexError("index is not found")
 
         return Row(column[index] for column in self.columns)
@@ -240,17 +244,27 @@ def main(path_users: str, path_transactions: str):
         path_transactions (str): Path to `transactions.csv` file.
     """
 
-    users: Table = read_users_csv(path_users)
-    transactions: Table = read_transactions_csv(path_transactions)
+    print(path_users)
+    print(path_transactions)
+    return
 
-    transactions_grouped_by_user = transactions.group_by("user_id")
-
-    set(users.column_by_name("user_id"))
-
-    # join_map = join(data_transactions, data_users, ("user_id", "user_id"))
-    # result = join_reduce(join_map)
-    # result = order(result, "sum_amount")
+    # users: Table = read_users_csv(path_users)
+    # transactions: Table = read_transactions_csv(path_transactions)
+    #
+    # transactions_grouped_by_user = transactions.group_by("user_id")
+    #
+    # result_column_names = tuple(["transaction_category_id", "sum_amount", "num_users"])
+    #
+    # result = Table(columns=tuple([[]] * len(result_column_names)),
+    #                column_names=result_column_names)
+    #
+    # for user_id in set(transactions_grouped_by_user.keys()).intersection(set(users.column_by_name("user_id"))):
+    #     for i in range(len(transactions_grouped_by_user[user_id])):
+    #         transactions_grouped_by_user[user_id].read_row(i)
 
 
 if __name__ == "__main__":
-    main("users.csv", "transactions.csv")
+    path_users = os.getenv("PATH_USERS", "/data/users.csv")
+    path_transactions = os.getenv("PATH_TRANSACTIONS", "/data/transactions.csv")
+
+    main(path_users, path_transactions)
