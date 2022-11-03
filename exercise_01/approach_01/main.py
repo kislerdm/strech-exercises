@@ -298,8 +298,9 @@ def read_transactions_csv(path: str, skip_header: bool = True) -> Table:
 
     cnt_row = 0
     with open(path, "r") as f:
+        cnt_row += 1
         for line in f:
-            if cnt_row == 0 and skip_header:
+            if cnt_row == 1 and skip_header:
                 continue
 
             lst_columns: List[str] = line.rstrip().split(",")
