@@ -39,7 +39,7 @@ import sys
 from typing import Any, List, Dict, Tuple
 from uuid import UUID
 
-Column = List[Any]
+Column = list[Any]
 
 
 class Row(Tuple[Any]):
@@ -186,16 +186,16 @@ class Table:
 
 
 class RowParsingError(Exception):
-    ""
+    """Error of parsing error."""
 
 
 def _to_bool(param: Any) -> bool:
     """Helper function to convert to bool."""
+    if isinstance(param, str):
+        return param.lower() == "true" or param == "1"
+
     if isinstance(param, int):
         return int(param) > 0
-
-    if isinstance(param, str):
-        return param.lower() == "true"
 
 
 def read_users_csv(path: str, skip_header: bool = True) -> Table:
@@ -224,12 +224,13 @@ def read_users_csv(path: str, skip_header: bool = True) -> Table:
         9f709688-326d-4834-8075-1a477d590af7
         b1ee6da9-aca5-4bc6-bcfb-21ace2185055
     """
-    result = Table(tuple(), column_names=tuple(["user_id"]))
+    result = Table(tuple([Column()]), column_names=tuple(["user_id"]))
 
     cnt_row = 0
     with open(path, "r") as f:
         for line in f:
-            if cnt_row == 0 and skip_header:
+            cnt_row += 1
+            if skip_header and cnt_row == 1:
                 continue
 
             lst_columns: List[str] = line.rstrip().split(",")
@@ -245,8 +246,6 @@ def read_users_csv(path: str, skip_header: bool = True) -> Table:
                 raise RowParsingError("failed to decode user_id for the row %d" % cnt_row) from ex
 
             result.append_row(Row(tuple([user_id])))
-
-            cnt_row += 1
 
     return result
 
@@ -280,7 +279,7 @@ def read_transactions_csv(path: str, skip_header: bool = True) -> Table:
         35715617-ea5d-4c00-842a-0aa81b224934,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,200,1
         ca0d184e-7297-4ac2-95a6-6ed719a67b0a,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,20,2
     """
-    result = Table(tuple(),
+    result = Table(tuple([Column() * 4]),
                    column_names=tuple(["transaction_id", "user_id", "transaction_amount", "transaction_category_id"]))
 
     cnt_row = 0
@@ -344,14 +343,16 @@ def main(path_users: str, path_transactions: str):
         for i in range(len(transactions_grouped_by_user[user_id])):
             transactions_grouped_by_user[user_id].read_row(i)
 
+    result.print_head(100)
+
 
 if __name__ == "__main__":
-    path_users = os.getenv("PATH_USERS", "/data/users.csv")
-    path_transactions = os.getenv("PATH_TRANSACTIONS", "/data/transactions.csv")
+    path_users_csv = os.getenv("PATH_USERS", "/data/users.csv")
+    path_transactions_csv = os.getenv("PATH_TRANSACTIONS", "/data/transactions.csv")
 
     logs = logging.Logger("join")
 
     try:
-        main(path_users, path_transactions)
+        main(path_users_csv, path_transactions_csv)
     except Exception as ex:
         logs.error(ex)
