@@ -32,7 +32,7 @@ ORDER BY sum_amount DESC;
 
 - to send the result to stdout
 """
-from typing import Type, Any, List, Dict, Tuple, Optional, Set
+from typing import Any, List, Dict, Tuple
 
 
 class RowParsingError(Exception):
@@ -112,25 +112,73 @@ Column = List[Any]
 class Table:
     """Defines column-oriented ``Table``"""
 
-    def __init__(self, columns: Tuple[Column], column_names: Optional[Set[str]]) -> None:
+    def __init__(self, columns: Tuple[Column], column_names: Tuple[str]) -> None:
         """Initiates a column-oriented ``Table``.
 
         Note: columns are ordered and accessible by the order, not name.
 
         Args:
             columns (tuple): Columns content.
-            column_names (set): Column names.
+            column_names (tuple): Column names.
 
         Raises:
             ValueError: when column_names length does not match the ``Table`` size.
         """
-        if column_names is not None:
-            if len(column_names) != len(columns):
-                raise ValueError("column_names does not match the table size")
+        if len(column_names) != len(columns):
+            raise ValueError("column_names does not match the table size")
 
         self.columns: Tuple[Column] = columns
-        self.column_names: Set[str] = column_names
+        self.column_names: Tuple[str] = column_names
         self.cnt_rows: int = len(self.columns[0])
+
+    def column_by_index(self, column_index: int) -> Column:
+        """Returns the column by its index.
+
+        Args:
+            column_index (int): Column index.
+
+        Returns:
+            Column.
+
+        Raises:
+            KeyError: when column is not found.
+        """
+        if column_index < 0 or column_index > len(self.columns):
+            raise KeyError("column not found")
+
+        return self.columns[column_index]
+
+    def column_by_name(self, column_name: str) -> Column:
+        """Returns the column by its name.
+
+        Args:
+            column_name (str): Column name to be used to group.
+
+        Returns:
+            Column.
+
+        Raises:
+            KeyError: when column is not found.
+        """
+        return self.columns[self._get_column_index(column_name)]
+
+    def _get_column_index(self, column_name: str) -> int:
+        """Returns the column index by its name.
+
+        Args:
+            column_name (str): Column name to be used to group.
+
+        Returns:
+            Column index.
+
+        Raises:
+            KeyError: when column is not found.
+        """
+        for i, v in enumerate(self.column_names):
+            if v == column_name:
+                return i
+
+        raise KeyError("column '%s' not found" % column_name)
 
     def append_row(self, row: Row) -> None:
         """Appends the ``Row``.
@@ -162,13 +210,13 @@ class Table:
         if index > self.cnt_rows or index < 0:
             raise ValueError("index is not found")
 
-        return tuple(column[index] for column in self.columns)
+        return Row(column[index] for column in self.columns)
 
-    def pop(self, column_index: int) -> Column:
+    def pop(self, column_name: str) -> Column:
         """Removes column by its name and returns it
 
         Args:
-            column_index (int): Column index.
+            column_name (str): Column name.
 
         Returns:
             The ``Column`` object.
@@ -176,10 +224,16 @@ class Table:
         Raises:
             KeyError: when column is not found.
         """
-        if column_index < 0 or column_index > len(self.columns):
-            raise KeyError("column not found")
+        result: Column = self.column_by_name(column_name)
 
-        return self.columns[column_index]
+        self.columns = Column(
+            column for i, column in enumerate(self.columns)
+            if i != self._get_column_index(column_name)
+        )
+
+        self.column_names = tuple(v for v in self.column_names if v != column_name)
+
+        return result
 
     def group_by(self, column_name: str) -> Dict[str, "Table"]:
         """Groups the table by column.
@@ -193,13 +247,22 @@ class Table:
         Raises:
             KeyError: when column is not found.
         """
-        column_index = self.column_names
-        column_group_by: Column = self.pop(column_name)
+        column_index: int = self._get_column_index(column_name)
 
-        result: Dict[str, "Table"]
+        column_group_by: Column = self.columns[column_index]
 
-        for i, value in enumerate(column_group_by.values):
-            result[value] = None
+        group_table_col_names = tuple(v for v in self.column_names if v != column_name)
+
+        result: Dict[str, "Table"] = {}
+
+        for i, value in enumerate(column_group_by):
+            row: Row = Row(v for field_index, v in enumerate(self.read_row(i)) if field_index != column_index)
+
+            if result.get(value) is None:
+                result[value] = Table(columns=tuple([[]] * len(group_table_col_names)),
+                                      column_names=group_table_col_names)
+
+            result[value].append_row(row)
 
         return result
 
@@ -227,6 +290,7 @@ def read_users_csv(path: str) -> Table:
         b1ee6da9-aca5-4bc6-bcfb-21ace2185055
     """
     pass
+
 
 def read_transactions_csv(path: str) -> Table:
     """Reads non-blocker transactions from csv file.
