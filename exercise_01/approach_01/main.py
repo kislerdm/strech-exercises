@@ -292,8 +292,9 @@ def read_transactions_csv(path: str, skip_header: bool = True) -> Table:
         35715617-ea5d-4c00-842a-0aa81b224934,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,200,1
         ca0d184e-7297-4ac2-95a6-6ed719a67b0a,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,20,2
     """
-    result = Table(tuple([Column() * 4]),
-                   column_names=tuple(["transaction_id", "user_id", "transaction_amount", "transaction_category_id"]))
+    col_names = tuple(["transaction_id", "user_id", "transaction_amount", "transaction_category_id"])
+
+    result = Table(tuple([Column() * len(col_names)]), column_names=col_names)
 
     cnt_row = 0
     with open(path, "r") as f:
