@@ -353,10 +353,7 @@ def main(path_users: str, path_transactions: str):
 
     transactions_grouped_by_user = transactions.group_by("user_id")
 
-    result_column_names = tuple(["transaction_category_id", "sum_amount", "num_users"])
-
-    result = Table(columns=tuple([[]] * len(result_column_names)),
-                   column_names=result_column_names)
+    result = Table(column_names={"transaction_category_id", "sum_amount", "num_users"})
 
     for user_id in set(transactions_grouped_by_user.keys()).intersection(set(users.column_by_name("user_id"))):
         for i in range(len(transactions_grouped_by_user[user_id])):
