@@ -2,7 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from exercise_01.approach_01.main import Table, read_users_csv, Column, _to_bool, read_transactions_csv
+from main import Table, read_users_csv, Column, _to_bool, read_transactions_csv
 
 
 @pytest.mark.parametrize("param,want", [
@@ -72,3 +72,20 @@ def test_read_transactions_csv(mocker, table_transactions, data_transactions_csv
     mocker.patch("builtins.open", mocker.mock_open(read_data=data_transactions_csv_str))
     got = read_transactions_csv(path="transactions.csv")
     assert got == table_transactions
+
+
+class TestTable:
+    @pytest.mark.parametrize(
+        "columns,column_names,len_want,is_error,error_msg",
+        [
+            (
+                    (Column([1, 2, 3]), Column(["a", "b", "c"])),
+                    ("foo", "bar"),
+                    2,
+                    False,
+                    None,
+            )
+        ]
+    )
+    def test_init(self, columns, column_names, len_want, is_error, error_msg):
+        got = Table(columns, column_names)

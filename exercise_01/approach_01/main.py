@@ -36,13 +36,12 @@ import io
 import logging
 import os
 import sys
-from typing import Any, List, Dict, Tuple
 from uuid import UUID
 
-Column = list[Any]
+Column = list[any]
 
 
-class Row(Tuple[Any]):
+class Row(tuple[any]):
     """Table ``Row``."""
 
     def __str__(self) -> str:
@@ -52,7 +51,7 @@ class Row(Tuple[Any]):
 class Table:
     """Defines column-oriented ``Table``"""
 
-    def __init__(self, columns: Tuple[Column], column_names: Tuple[str]) -> None:
+    def __init__(self, columns: tuple[Column], column_names: tuple[str]) -> None:
         """Initiates a column-oriented ``Table``.
 
         Note: columns are ordered and accessible by the order, not name.
@@ -67,8 +66,12 @@ class Table:
         if len(column_names) != len(columns):
             raise ValueError("column_names does not match the table size")
 
-        self.columns: Tuple[Column] = columns
-        self.column_names: Tuple[str] = column_names
+        column_lengths: tuple[int] = tuple(len(col) for col in columns)
+        if column_lengths.count(column_lengths[0]) != len(columns):
+            raise ValueError("columns length differs")
+
+        self.columns: tuple[Column] = columns
+        self.column_names: tuple[str] = column_names
         self._cnt_rows: int = len(self.columns[0])
 
     def __len__(self):
@@ -167,7 +170,7 @@ class Table:
 
         return Row(column[index] for column in self.columns)
 
-    def group_by(self, column_name: str) -> Dict[str, "Table"]:
+    def group_by(self, column_name: str) -> dict[str, "Table"]:
         """Groups the table by column.
 
         Args:
@@ -185,7 +188,7 @@ class Table:
 
         group_table_col_names = tuple(v for v in self.column_names if v != column_name)
 
-        result: Dict[str, "Table"] = {}
+        result: dict[str, "Table"] = {}
 
         for i, value in enumerate(column_group_by):
             row: Row = Row(v for field_index, v in enumerate(self.read_row(i)) if field_index != column_index)
@@ -203,7 +206,7 @@ class RowParsingError(Exception):
     """Error of parsing error."""
 
 
-def _to_bool(param: Any) -> bool:
+def _to_bool(param: any) -> bool:
     """Helper function to convert to bool."""
     if isinstance(param, str):
         return param.lower() == "true" or param == "1"
@@ -247,7 +250,7 @@ def read_users_csv(path: str, skip_header: bool = True) -> Table:
             if skip_header and cnt_row == 1:
                 continue
 
-            lst_columns: List[str] = line.rstrip().split(",")
+            lst_columns: list[str] = line.rstrip().split(",")
             if len(lst_columns) < 2:
                 raise RowParsingError("cannot parse the row %d" % cnt_row)
 
@@ -304,7 +307,7 @@ def read_transactions_csv(path: str, skip_header: bool = True) -> Table:
             if cnt_row == 1 and skip_header:
                 continue
 
-            lst_columns: List[str] = line.rstrip().split(",")
+            lst_columns: list[str] = line.rstrip().split(",")
             if len(lst_columns) < 6:
                 raise RowParsingError("cannot parse the row %d" % cnt_row)
 
