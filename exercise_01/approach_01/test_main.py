@@ -2,7 +2,76 @@ from uuid import UUID
 
 import pytest
 
-from main import Table, read_users_csv, Column, _to_bool, read_transactions_csv
+from main import Table, read_users_csv, Column, _to_bool, read_transactions_csv, Row
+
+
+class TestTable:
+    @pytest.mark.parametrize(
+        "columns,column_names,len_want,is_error,error_msg",
+        [
+            (
+                    (Column([1, 2, 3]), Column(["a", "b", "c"])),
+                    {"foo", "bar"},
+                    3,
+                    False,
+                    None,
+            ),
+            (
+                    (Column([1, 2, 3]), Column(["a", "b"])),
+                    {"foo", "bar"},
+                    None,
+                    True,
+                    "columns length differs",
+            ),
+            (
+                    (Column([1, 2, 3]), Column(["a", "b", "c"])),
+                    {"foo", },
+                    None,
+                    True,
+                    "column_names does not match the table size",
+            )
+        ]
+    )
+    def test_init(self, columns, column_names, len_want, is_error, error_msg):
+        try:
+            got = Table(column_names, columns)
+
+            assert len(got) == len_want, "faulty number of rows"
+
+        except Exception as ex:
+            if is_error:
+                with pytest.raises(ValueError, match=error_msg):
+                    raise ex
+
+    @pytest.mark.parametrize(
+        "table,row,want,is_error,error_msg",
+        [
+            (
+                    Table({"foo", "bar"}, (Column([1, 2, 3]), Column(["a", "b", "c"]))),
+                    Row([4, "d"]),
+                    Table({"foo", "bar"}, (Column([1, 2, 3, 4]), Column(["a", "b", "c", "d"]))),
+                    False,
+                    None,
+            ),
+            (
+                    Table({"foo", "bar"}, (Column([1, 2, 3]), Column(["a", "b", "c"]))),
+                    Row([4, "d", True]),
+                    None,
+                    True,
+                    "row does not match the structure of the table",
+            )
+        ]
+    )
+    def test_append_row(self, table, row, want, is_error, error_msg):
+        try:
+            table.append_row(row)
+
+            assert table == want
+
+        except Exception as ex:
+            if is_error:
+                with pytest.raises(ValueError, match=error_msg):
+                    raise ex
 
 
 @pytest.mark.parametrize("param,want", [
@@ -29,10 +98,17 @@ b1ee6da9-aca5-4bc6-bcfb-21ace2185055,true
 @pytest.fixture()
 def table_users() -> Table:
     return Table(
-        columns=tuple(
-            Column([[UUID("9f709688-326d-4834-8075-1a477d590af7"), UUID("b1ee6da9-aca5-4bc6-bcfb-21ace2185055")]])),
-        column_names=tuple(["user_id"]),
+        columns=(
+            Column([UUID("9f709688-326d-4834-8075-1a477d590af7"), UUID("b1ee6da9-aca5-4bc6-bcfb-21ace2185055")]),
+        ),
+        column_names={"user_id", },
     )
+
+
+def test_read_users_csv(mocker, table_users, data_users_csv_str):
+    mocker.patch("builtins.open", mocker.mock_open(read_data=data_users_csv_str))
+    got = read_users_csv(path="users.csv")
+    assert got == table_users
 
 
 @pytest.fixture()
@@ -49,43 +125,27 @@ ca0d184e-7297-4ac2-95a6-6ed719a67b0a,2022-02-02,b1ee6da9-aca5-4bc6-bcfb-21ace218
 @pytest.fixture()
 def table_transactions() -> Table:
     return Table(
-        columns=tuple([
-            Column([["3e6cdc49-f1c5-4ac6-9483-37622eed207a", "35715617-ea5d-4c00-842a-0aa81b224934",
-                     "ca0d184e-7297-4ac2-95a6-6ed719a67b0a"]]),
-            Column([["9f709688-326d-4834-8075-1a477d590af7", "b1ee6da9-aca5-4bc6-bcfb-21ace2185055",
-                     "b1ee6da9-aca5-4bc6-bcfb-21ace2185055"]]),
-            Column([[200, 200, 20]]),
-            Column([[1, 1, 2]]),
-        ]),
-        column_names=tuple(
-            ["transaction_id", "user_id", "transaction_amount", "transaction_category_id"],
-        ))
-
-
-def test_read_users_csv(mocker, table_users, data_users_csv_str):
-    mocker.patch("builtins.open", mocker.mock_open(read_data=data_users_csv_str))
-    got = read_users_csv(path="users.csv")
-    assert got == table_users
+        columns=(
+            Column([
+                UUID("3e6cdc49-f1c5-4ac6-9483-37622eed207a"),
+                UUID("35715617-ea5d-4c00-842a-0aa81b224934"),
+                UUID("ca0d184e-7297-4ac2-95a6-6ed719a67b0a"),
+            ]),
+            Column([
+                UUID("9f709688-326d-4834-8075-1a477d590af7"),
+                UUID("b1ee6da9-aca5-4bc6-bcfb-21ace2185055"),
+                UUID("b1ee6da9-aca5-4bc6-bcfb-21ace2185055"),
+            ]),
+            Column([200, 200, 20]),
+            Column([1, 1, 2]),
+        ),
+        column_names={
+            "transaction_id", "user_id", "transaction_amount", "transaction_category_id",
+        },
+    )
 
 
 def test_read_transactions_csv(mocker, table_transactions, data_transactions_csv_str):
     mocker.patch("builtins.open", mocker.mock_open(read_data=data_transactions_csv_str))
     got = read_transactions_csv(path="transactions.csv")
     assert got == table_transactions
-
-
-class TestTable:
-    @pytest.mark.parametrize(
-        "columns,column_names,len_want,is_error,error_msg",
-        [
-            (
-                    (Column([1, 2, 3]), Column(["a", "b", "c"])),
-                    ("foo", "bar"),
-                    2,
-                    False,
-                    None,
-            )
-        ]
-    )
-    def test_init(self, columns, column_names, len_want, is_error, error_msg):
-        got = Table(columns, column_names)

@@ -36,12 +36,13 @@ import io
 import logging
 import os
 import sys
+from typing import Optional
 from uuid import UUID
 
 Column = list[any]
 
 
-class Row(tuple[any]):
+class Row(tuple[any, ...]):
     """Table ``Row``."""
 
     def __str__(self) -> str:
@@ -51,26 +52,27 @@ class Row(tuple[any]):
 class Table:
     """Defines column-oriented ``Table``"""
 
-    def __init__(self, columns: tuple[Column], column_names: tuple[str]) -> None:
+    def __init__(self, column_names: set[str, ...], columns: Optional[tuple[Column, ...]] = None) -> None:
         """Initiates a column-oriented ``Table``.
 
         Note: columns are ordered and accessible by the order, not name.
 
         Args:
+            column_names (set): Column names.
             columns (tuple): Columns content.
-            column_names (tuple): Column names.
 
         Raises:
             ValueError: when column_names length does not match the ``Table`` size.
         """
-        if len(column_names) != len(columns):
+        self.columns: tuple[Column, ...] = columns if columns is not None else [Column() for _ in column_names]
+
+        if len(column_names) != len(self.columns):
             raise ValueError("column_names does not match the table size")
 
-        column_lengths: tuple[int] = tuple(len(col) for col in columns)
-        if column_lengths.count(column_lengths[0]) != len(columns):
+        column_lengths: tuple[int] = tuple(len(col) for col in self.columns)
+        if column_lengths.count(column_lengths[0]) != len(self.columns):
             raise ValueError("columns length differs")
 
-        self.columns: tuple[Column] = columns
         self.column_names: tuple[str] = column_names
         self._cnt_rows: int = len(self.columns[0])
 
@@ -143,10 +145,10 @@ class Table:
             row (Row): Row to append to the table.
 
         Raises:
-            KeyError: when row field corresponding to a column name is not found.
+            ValueError: when row field corresponding to a column name is not found.
         """
         if len(row) != len(self.columns):
-            raise KeyError("row does not match the structure of the table")
+            raise ValueError("row does not match the structure of the table")
 
         for i, _ in enumerate(self.columns):
             self.columns[i].append(row[i])
@@ -241,7 +243,7 @@ def read_users_csv(path: str, skip_header: bool = True) -> Table:
         9f709688-326d-4834-8075-1a477d590af7
         b1ee6da9-aca5-4bc6-bcfb-21ace2185055
     """
-    result = Table(tuple([Column()]), column_names=tuple(["user_id"]))
+    result = Table(column_names={"user_id", })
 
     cnt_row = 0
     with open(path, "r") as f:
@@ -296,9 +298,7 @@ def read_transactions_csv(path: str, skip_header: bool = True) -> Table:
         35715617-ea5d-4c00-842a-0aa81b224934,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,200,1
         ca0d184e-7297-4ac2-95a6-6ed719a67b0a,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,20,2
     """
-    col_names = tuple(["transaction_id", "user_id", "transaction_amount", "transaction_category_id"])
-
-    result = Table(tuple([[]] * len(col_names)), column_names=col_names)
+    result = Table(column_names={"transaction_id", "user_id", "transaction_amount", "transaction_category_id"})
 
     cnt_row = 0
     with open(path, "r") as f:
