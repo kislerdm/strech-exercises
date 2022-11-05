@@ -122,6 +122,32 @@ In [5]: uid_uuid.__sizeof__()
 Out[5]: 40
 ```
 
+- Would use of `dataclass` lead to higher memory allocation? <br> <br>_The answer_: no, en contraire; on top, it improves code quality:
+
+```commandline
+In [1]: from uuid import UUID
+In [2]: Transaction = tuple[UUID, UUID, int, int]
+
+In [3]: from dataclasses import dataclass
+
+In [4]: @dataclass
+   ...: class Transaction1:
+   ...:     transaction_id: UUID
+   ...:     user_id: UUID
+   ...:     transaction_amount: int
+   ...:     transaction_category_id: int
+   ...: 
+In [5]: t0 = Transaction((UUID("9f709688-326d-4834-8075-1a477d590af7"), UUID("999eb541-c1a0-4888-aeb6-92773fc60e69"), 1, 1))
+
+In [6]: t1 = Transaction1(UUID("9f709688-326d-4834-8075-1a477d590af7"), UUID("999eb541-c1a0-4888-aeb6-92773fc60e69"), 1, 1)
+
+In [7]: t0.__sizeof__()
+Out[7]: 56
+
+In [8]: t1.__sizeof__()
+Out[8]: 32
+```
+
 - When reading file, is `csv` library more efficient than line-by-line reading using standard file reader with `open`?
 - Which sorting algorithm would suffice the cardinality of the problem?
     - Costs-benefit tradeoff: delivery effectiveness vs. technical efficiency, i.e. development complexity vs.
