@@ -2,22 +2,16 @@
 
 import logging
 import os
+from typing import Callable, Optional
+from uuid import UUID
 
 
-def read_active_users(path: str, skip_header: bool = True) -> set[str]:
-    """Reads active users from `users.csv` file.
-
-    Args:
-        path (str): Path to `users.csv` file.
-        skip_header (bool): Skip csv header.
-
-    Returns:
-        Set of user ID.
-    """
+def parse_row(row: list[str], converter: Optional[Callable[[list[str]], tuple[any, ...]]]) -> tuple[any, ...]:
+    """active users from `users.csv` file"""
     pass
 
 
-class Reader:
+class CSVReader:
     """Reads the csv file."""
 
     def _open(self) -> None:
@@ -31,10 +25,9 @@ class Reader:
         self.header_skipped = not skip_header
 
     def __iter__(self):
-
         return self
 
-    def __next__(self):
+    def __next__(self) -> Optional[list[str]]:
         self._readline()
         o = self.line
 
@@ -42,7 +35,7 @@ class Reader:
             self.header_skipped = not self.header_skipped
             return next(self)
 
-        return o
+        return o.split(",")
 
     def _readline(self):
         try:
@@ -52,9 +45,39 @@ class Reader:
             self._file_io.close()
             raise e
 
-    def reopen(self):
-        self._file_io.close()
-        self._open()
+
+def _is_true(s: str) -> bool:
+    """Helper function to check if True."""
+    return s.lower() == "true" or s == "1"
+
+
+class DataQualityError(Exception):
+    """Error raised if data are not valid."""
+    pass
+
+
+def read_active_users(reader: CSVReader) -> set[UUID]:
+    """Reads active users from the `users.csv`.
+
+    Args:
+        reader (CSVReader): Initialised CSVReader object.
+
+    Returns:
+        Set of active user ID.
+    """
+    o: set[UUID] = set()
+
+    for cols in reader:
+        if len(cols) < 2:
+            raise DataQualityError("wrong number of columns")
+
+        if _is_true(cols[1]):
+            try:
+                o.add(UUID(cols[0]))
+            except Exception:
+                raise DataQualityError("failed to decode user_id")
+
+    return o
 
 
 def main(path_users: str, path_transactions: str, skip_header: bool = True) -> None:
@@ -77,7 +100,7 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> N
             GROUP BY t.transaction_category_id
             ORDER BY sum_amount DESC;
     """
-    active_users: set[str] = read_active_users(path_users, skip_header)
+    active_users: set[UUID] = read_active_users(CSVReader(path_users, skip_header))
 
 
 if __name__ == "__main__":
