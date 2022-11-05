@@ -148,7 +148,7 @@ def new_not_blocked_transaction(row: list[str]) -> Optional[Transaction]:
         raise DataQualityError("failed to decode transaction_category_id: %s" % e.__str__())
 
     try:
-        _ = time.strptime(row[2], "%Y-%m-%d")
+        _ = time.strptime(row[1], "%Y-%m-%d")
     except ValueError as e:
         raise DataQualityError("failed to decode date: %s" % e.__str__())
 
@@ -195,7 +195,7 @@ class TransactionCategoryKPICalc(TransactionCategoryKPI):
         del self._unique_users
 
 
-class JOINResult(dict[int, TransactionCategoryKPICalc]):
+class QueryResult(dict[int, TransactionCategoryKPICalc]):
     """Define the class to keep results of inner join."""
 
     def add_transaction(self, transaction: Transaction) -> None:
@@ -230,7 +230,7 @@ class JOINResult(dict[int, TransactionCategoryKPICalc]):
         for k, v in temp:
             self[k] = v
 
-    def __eq__(self, other: "JOINResult") -> bool:
+    def __eq__(self, other: "QueryResult") -> bool:
         if len(self) != len(other):
             return False
 
@@ -246,7 +246,7 @@ class JOINResult(dict[int, TransactionCategoryKPICalc]):
     def __str__(self) -> str:
         header: str = "transaction_category_id,sum_amount,num_users"
         rows: str = "\n".join([f"{k},{v.sum_amount},{v.num_users}" for k, v in self.items()])
-        return f"{header}\n{rows}"
+        return f"{header}\n{rows}\n"
 
 
 def main(path_users: str, path_transactions: str, skip_header: bool = True) -> None:
@@ -272,10 +272,9 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> N
     active_users: set[UUID] = read_active_users(CSVReader(path_users, skip_header))
 
     if len(active_users) == 0:
-        print("no active users found")
-        return
+        return None
 
-    result: JOINResult = JOINResult()
+    result: QueryResult = QueryResult()
 
     for row in CSVReader(path_transactions, skip_header):
         transaction: Optional[Transaction] = new_not_blocked_transaction(row)
@@ -289,6 +288,7 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> N
 
         result.add_transaction(transaction)
 
+    result.calculate()
     result.sort_by_transactions_amount()
 
     print(result)
