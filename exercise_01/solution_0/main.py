@@ -23,7 +23,7 @@ class CSVReader:
     def __iter__(self) -> "CSVReader":
         return self
 
-    def __next__(self) -> Optional[list[str]]:
+    def __next__(self) -> list[str]:
         self._readline()
         o = self.line
 
@@ -49,6 +49,7 @@ def _is_true(s: str) -> bool:
 
 class DataQualityError(Exception):
     """Error raised if data are not valid."""
+
     pass
 
 
@@ -80,8 +81,9 @@ def read_active_users(reader: CSVReader) -> set[UUID]:
 
 
 class Transaction:
-    def __init__(self, transaction_id: UUID, user_id: UUID, transaction_amount: int,
-                 transaction_category_id: int) -> None:
+    def __init__(
+        self, transaction_id: UUID, user_id: UUID, transaction_amount: int, transaction_category_id: int
+    ) -> None:
         """Defines a transaction with relevant attributes.
 
         Args:
@@ -98,14 +100,16 @@ class Transaction:
     def __lt__(self, other: "Transaction") -> bool:
         return self.transaction_amount < other.transaction_amount
 
-    def __eq__(self, other: "Transaction") -> bool:
+    def __eq__(self, other) -> bool:
         if self is None:
             return other is None
         if other is not None:
-            return self.transaction_amount == other.transaction_amount and \
-                   self.transaction_category_id == other.transaction_category_id and \
-                   self.user_id == other.user_id and \
-                   self.transaction_id == other.transaction_id
+            return (
+                self.transaction_amount == other.transaction_amount
+                and self.transaction_category_id == other.transaction_category_id
+                and self.user_id == other.user_id
+                and self.transaction_id == other.transaction_id
+            )
         return False
 
 
@@ -166,10 +170,10 @@ class TransactionCategoryKPI:
         self.sum_amount: int = sum_amount
         self.num_users: int = num_users
 
-    def __lt__(self, other: "TransactionCategoryKPI") -> bool:
+    def __lt__(self, other) -> bool:
         return self.sum_amount < other.sum_amount
 
-    def __eq__(self, other: "TransactionCategoryKPI") -> bool:
+    def __eq__(self, other) -> bool:
         return self.sum_amount == other.sum_amount and self.num_users == self.num_users
 
 
@@ -230,7 +234,7 @@ class QueryResult(dict[int, TransactionCategoryKPICalc]):
         for k, v in temp:
             self[k] = v
 
-    def __eq__(self, other: "QueryResult") -> bool:
+    def __eq__(self, other) -> bool:
         if len(self) != len(other):
             return False
 
@@ -301,9 +305,9 @@ if __name__ == "__main__":
     path_users_csv = os.getenv("PATH_USERS", "/data/users.csv")
     path_transactions_csv = os.getenv("PATH_TRANSACTIONS", "/data/transactions.csv")
 
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s [%(levelname)s] %(message)s",
-                        datefmt="%Y-%m-%dT%H:%M:%S.%03d")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%dT%H:%M:%S.%03d"
+    )
 
     logs = logging.getLogger("joiner")
 
