@@ -11,12 +11,10 @@ SOLUTION := solution_0
 tests: setup.env ## Runs unit tests.
 	@ cd $(SOLUTION) && make tests
 
-PATH_USERS := $(PWD)/fixtures/users.csv
-PATH_TRANSACTIONS := $(PWD)/fixtures/transactions.csv
+PATH_DIR := $(PWD)/fixtures
 
 run: ## Runs the application.
 	@ docker run \
- 		-v $(PATH_USERS):/data/users.csv \
- 		-v $(PATH_TRANSACTIONS):/data/transactions.csv \
- 		-v $(PWD)/main.py:/main.py \
+ 		-v $(PATH_DIR):/data \
+ 		-v $(PWD)/$(SOLUTION)/main.py:/main.py \
   		python:3.9.15-slim-buster python /main.py

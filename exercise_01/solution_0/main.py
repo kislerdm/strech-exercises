@@ -249,13 +249,16 @@ class QueryResult(dict[int, TransactionCategoryKPICalc]):
         return f"{header}\n{rows}\n"
 
 
-def main(path_users: str, path_transactions: str, skip_header: bool = True) -> None:
+def main(path_users: str, path_transactions: str, skip_header: bool = True) -> Optional[QueryResult]:
     """Entrypoint.
 
     Args:
         path_users (str): Path to `users.csv` file.
         path_transactions (str): Path to `transactions.csv` file.
         skip_header (bool): Skip csv header.
+
+    Returns:
+        Query results.
 
     Note:
         The logic is aiming to apply data transformations according to the query:
@@ -291,16 +294,24 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> N
     result.calculate()
     result.sort_by_transactions_amount()
 
-    print(result)
+    return result
 
 
 if __name__ == "__main__":
     path_users_csv = os.getenv("PATH_USERS", "/data/users.csv")
     path_transactions_csv = os.getenv("PATH_TRANSACTIONS", "/data/transactions.csv")
 
-    logs = logging.Logger("join")
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s [%(levelname)s] %(message)s",
+                        datefmt="%Y-%m-%dT%H:%M:%S.%03d")
+
+    logs = logging.getLogger("joiner")
 
     try:
-        main(path_users_csv, path_transactions_csv, True)
+        t0 = time.time()
+        results = main(path_users_csv, path_transactions_csv, True)
+        logs.info("elapsed time: %.3f sec." % (time.time() - t0))
+        logs.info("results:")
+        print(results)
     except Exception as ex:
         logs.error(ex)

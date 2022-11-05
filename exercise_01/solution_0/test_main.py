@@ -228,7 +228,8 @@ def test_main(mocker, users_str, transactions_str, want):
     mock_open["/transactions.csv"].read_data = transactions_str
     mocker.patch("builtins.open", mock_open)
 
+    result = main("/users.csv", "/transactions.csv")
     with Capturing() as stdout:
-        main("/users.csv", "/transactions.csv")
+        print(result)
 
     assert "\n".join(stdout) == want
