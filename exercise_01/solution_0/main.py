@@ -1,7 +1,7 @@
 """Application to process and join tables."""
-
 import logging
 import os
+from dataclasses import dataclass
 from typing import Callable, Optional
 from uuid import UUID
 
@@ -64,20 +64,37 @@ def read_active_users(reader: CSVReader) -> set[UUID]:
 
     Returns:
         Set of active user ID.
+
+    Raises:
+        DataQualityError: when data validate error happened.
     """
     o: set[UUID] = set()
 
     for cols in reader:
         if len(cols) < 2:
-            raise DataQualityError("wrong number of columns")
+            raise DataQualityError("wrong number of columns in row %d" % reader.row_id)
 
         if _is_true(cols[1]):
             try:
                 o.add(UUID(cols[0]))
             except Exception:
-                raise DataQualityError("failed to decode user_id")
+                raise DataQualityError("failed to decode user_id in row %d" % reader.row_id)
 
     return o
+
+
+
+@dataclass
+class Transaction:
+    transaction_id: UUID
+    user_id: UUID
+    transaction_amount: int
+    transaction_category_id: int
+
+
+def read_not_blocked_transaction(row: list[str]) -> Transaction:
+
+    pass
 
 
 def main(path_users: str, path_transactions: str, skip_header: bool = True) -> None:
@@ -101,6 +118,16 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> N
             ORDER BY sum_amount DESC;
     """
     active_users: set[UUID] = read_active_users(CSVReader(path_users, skip_header))
+
+    if len(active_users) == 0:
+        print("no active users found")
+        return
+
+
+    for row in CSVReader(path_transactions, skip_header):
+        transaction: Transaction = read_not_blocked_transaction(row)
+        if transaction.user_id not in active_users:
+            continue
 
 
 if __name__ == "__main__":

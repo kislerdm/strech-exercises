@@ -59,15 +59,16 @@ class TestReader:
     """,
             {},
             True,
-            "wrong number of columns",
+            "wrong number of columns in row 1",
     ),
     (
             """user_id,is_active
+    9f709688-326d-4834-8075-1a477d590af7,1
     1,1
     """,
             {},
             True,
-            "failed to decode user_id",
+            "failed to decode user_id in row 2",
     ),
 ])
 def test_read_active_users(mocker, file_content, want, is_error, error_msg):
