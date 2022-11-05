@@ -106,7 +106,22 @@ Linting applied:
 ### Tech Questions and Decisions
 
 - How to store user_id and transaction_id in memory?
-    - UUID vs. str: what leads to higher memory allocation?
+    - UUID vs. str: what leads to higher memory allocation? <br>_The answer_: str required more memory to store an object:
+
+```commandline
+In [1]: uid = "9f709688-326d-4834-8075-1a477d590af7"
+
+In [2]: uid.__sizeof__()
+Out[2]: 85
+
+In [3]: from uuid import UUID
+
+In [4]: uid_uuid = UUID(uid)
+
+In [5]: uid_uuid.__sizeof__()
+Out[5]: 40
+```
+
 - When reading file, is `csv` library more efficient than line-by-line reading using standard file reader with `open`?
 - Which sorting algorithm would suffice the cardinality of the problem?
     - Costs-benefit tradeoff: delivery effectiveness vs. technical efficiency, i.e. development complexity vs.
