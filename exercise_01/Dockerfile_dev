@@ -1,0 +1,10 @@
+FROM python:3.9.15-slim-buster
+
+COPY requirements_dev.txt requirements_dev.txt
+
+RUN pip install -r requirements_dev.txt \
+    && rm requirements_dev.txt
+
+WORKDIR /src
+
+CMD ["/bin/bash"]
