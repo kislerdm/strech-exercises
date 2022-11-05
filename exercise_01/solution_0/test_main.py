@@ -149,7 +149,7 @@ def test_JOINResult():
         Transaction(transaction_id=uuid4(), user_id=uid, transaction_amount=1, transaction_category_id=1),
         Transaction(transaction_id=uuid4(), user_id=uid, transaction_amount=1, transaction_category_id=2),
         Transaction(transaction_id=uuid4(), user_id=uid, transaction_amount=10, transaction_category_id=3),
-        Transaction(transaction_id=uuid4(), user_id=uid, transaction_amount=4, transaction_category_id=1),
+        Transaction(transaction_id=uuid4(), user_id=uuid4(), transaction_amount=4, transaction_category_id=1),
     )
 
     # WHEN add transactions to the result
@@ -159,14 +159,22 @@ def test_JOINResult():
     result.calculate()
 
     # AND perform sort by category
-    result = result.sort_by_transactions_amount(desc=True)
+    result.sort_by_transactions_amount(desc=True)
 
     # THEN
     # the result MUST match
     want = JOINResult({
         transactions[2].transaction_category_id: TransactionCategoryKPICalc(TransactionCategoryKPI(10, 1)),
-        transactions[0].transaction_category_id: TransactionCategoryKPICalc(TransactionCategoryKPI(5, 1)),
+        transactions[0].transaction_category_id: TransactionCategoryKPICalc(TransactionCategoryKPI(5, 2)),
         transactions[1].transaction_category_id: TransactionCategoryKPICalc(TransactionCategoryKPI(1, 1)),
     })
 
     assert result == want
+
+    # AND print must yield
+    want_print = """transaction_category_id,sum_amount,num_users
+3,10,1
+1,5,2
+2,1,1"""
+
+    assert result.__str__() == want_print

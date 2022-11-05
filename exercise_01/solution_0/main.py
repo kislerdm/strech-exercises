@@ -213,7 +213,7 @@ class JOINResult(dict[int, TransactionCategoryKPICalc]):
         for v in self.values():
             v.calculate()
 
-    def sort_by_transactions_amount(self, desc: bool = True) -> "JOINResult":
+    def sort_by_transactions_amount(self, desc: bool = True):
         """Sorts by transaction_amount.
 
         Args:
@@ -222,7 +222,13 @@ class JOINResult(dict[int, TransactionCategoryKPICalc]):
         Note:
             Inspired by https://writeonly.wordpress.com/2008/08/30/sorting-dictionaries-by-value-in-python-improved/.
         """
-        return JOINResult(sorted(self.items(), key=itemgetter(1), reverse=desc))
+        temp = sorted(self.items(), key=itemgetter(1), reverse=desc)
+
+        while len(self) > 0:
+            self.popitem()
+
+        for k, v in temp:
+            self[k] = v
 
     def __eq__(self, other: "JOINResult") -> bool:
         if len(self) != len(other):
@@ -239,7 +245,7 @@ class JOINResult(dict[int, TransactionCategoryKPICalc]):
 
     def __str__(self) -> str:
         header: str = "transaction_category_id,sum_amount,num_users"
-        rows: str = "\n".join(set(f"{k},{v.sum_amount},{v.num_users}" for k, v in self.items()))
+        rows: str = "\n".join([f"{k},{v.sum_amount},{v.num_users}" for k, v in self.items()])
         return f"{header}\n{rows}"
 
 
@@ -283,7 +289,7 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> N
 
         result.add_transaction(transaction)
 
-    result = result.sort_by_transactions_amount()
+    result.sort_by_transactions_amount()
 
     print(result)
 
