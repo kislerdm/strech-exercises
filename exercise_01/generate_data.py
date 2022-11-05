@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 
-import argparse
 import csv
 import datetime
 import os
@@ -84,6 +83,7 @@ def write_data(out, header, data):
 
 
 if __name__ == '__main__':
+    random.seed("2022-11-02")
     users = generate_users()
     transactions = generate_transactions(users)
 
