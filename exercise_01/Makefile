@@ -11,6 +11,9 @@ SOLUTION := solution_0
 tests: setup.env ## Runs unit tests.
 	@ cd $(SOLUTION) && make tests
 
+lint: setup.env
+	@ cd $(SOLUTION) && make lint
+
 PATH_DIR := $(PWD)/fixtures
 
 run: ## Runs the application.

@@ -4,6 +4,8 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 import pytest
+from mock_open import MockOpen  # type: ignore
+
 from main import (
     CSVReader,
     DataQualityError,
@@ -15,7 +17,6 @@ from main import (
     new_not_blocked_transaction,
     read_active_users,
 )
-from mock_open import MockOpen  # type: ignore
 
 
 class Capturing(list[str]):
