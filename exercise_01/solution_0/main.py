@@ -1,14 +1,10 @@
 """Application to process and join tables."""
 import logging
 import os
-from dataclasses import dataclass
-from typing import Callable, Optional
+import time
+from operator import itemgetter
+from typing import Optional
 from uuid import UUID
-
-
-def parse_row(row: list[str], converter: Optional[Callable[[list[str]], tuple[any, ...]]]) -> tuple[any, ...]:
-    """active users from `users.csv` file"""
-    pass
 
 
 class CSVReader:
@@ -18,13 +14,13 @@ class CSVReader:
         self._file_io = open(self.path, "r")
         self.row_id = -1
 
-    def __init__(self, path: str, skip_header: bool = True):
+    def __init__(self, path: str, skip_header: bool = True) -> None:
         self.path = path
         self._open()
         self.line: str = ""
         self.header_skipped = not skip_header
 
-    def __iter__(self):
+    def __iter__(self) -> "CSVReader":
         return self
 
     def __next__(self) -> Optional[list[str]]:
@@ -37,7 +33,7 @@ class CSVReader:
 
         return o.split(",")
 
-    def _readline(self):
+    def _readline(self) -> None:
         try:
             self.line = next(self._file_io).rstrip()
             self.row_id += 1
@@ -60,13 +56,13 @@ def read_active_users(reader: CSVReader) -> set[UUID]:
     """Reads active users from the `users.csv`.
 
     Args:
-        reader (CSVReader): Initialised CSVReader object.
+        reader (``CSVReader``): Initialised CSVReader object.
 
     Returns:
         Set of active user ID.
 
     Raises:
-        DataQualityError: when data validate error happened.
+        DataQualityError: when data validation error happened.
     """
     o: set[UUID] = set()
 
@@ -77,24 +73,174 @@ def read_active_users(reader: CSVReader) -> set[UUID]:
         if _is_true(cols[1]):
             try:
                 o.add(UUID(cols[0]))
-            except Exception:
-                raise DataQualityError("failed to decode user_id in row %d" % reader.row_id)
+            except ValueError as e:
+                raise DataQualityError("failed to decode user_id in row %d: %s" % (reader.row_id, e.__str__()))
 
     return o
 
 
-
-@dataclass
 class Transaction:
-    transaction_id: UUID
-    user_id: UUID
-    transaction_amount: int
-    transaction_category_id: int
+    def __init__(self, transaction_id: UUID, user_id: UUID, transaction_amount: int,
+                 transaction_category_id: int) -> None:
+        """Defines a transaction with relevant attributes.
+
+        Args:
+            transaction_id (UUID): Transaction ID.
+            user_id (UUID): User ID.
+            transaction_amount (int): Amount.
+            transaction_category_id (int): Category.
+        """
+        self.transaction_id = transaction_id
+        self.user_id = user_id
+        self.transaction_amount = transaction_amount
+        self.transaction_category_id = transaction_category_id
+
+    def __lt__(self, other: "Transaction") -> bool:
+        return self.transaction_amount < other.transaction_amount
+
+    def __eq__(self, other: "Transaction") -> bool:
+        if self is None:
+            return other is None
+        if other is not None:
+            return self.transaction_amount == other.transaction_amount and \
+                   self.transaction_category_id == other.transaction_category_id and \
+                   self.user_id == other.user_id and \
+                   self.transaction_id == other.transaction_id
+        return False
 
 
-def read_not_blocked_transaction(row: list[str]) -> Transaction:
+def new_not_blocked_transaction(row: list[str]) -> Optional[Transaction]:
+    """Reads a single non-blocked transaction from the parsed row of `transactions.csv` file.
 
-    pass
+    Args:
+        row (list): Parsed data row.
+
+    Returns:
+        ``Transaction`` object.
+
+    Raises:
+        DataQualityError: when data validation error happened.
+    """
+    if len(row) < 6:
+        raise DataQualityError("wrong number of columns")
+
+    if _is_true(row[3]):
+        return None
+
+    try:
+        transaction_id = UUID(row[0])
+    except ValueError as e:
+        raise DataQualityError("failed to decode transaction_id: %s" % e.__str__())
+
+    try:
+        user_id = UUID(row[2])
+    except ValueError as e:
+        raise DataQualityError("failed to decode user_id: %s" % e.__str__())
+
+    try:
+        transaction_amount = int(row[4])
+    except ValueError as e:
+        raise DataQualityError("failed to decode transaction_amount: %s" % e.__str__())
+
+    try:
+        transaction_category_id = int(row[5])
+    except ValueError as e:
+        raise DataQualityError("failed to decode transaction_category_id: %s" % e.__str__())
+
+    try:
+        _ = time.strptime(row[2], "%Y-%m-%d")
+    except ValueError as e:
+        raise DataQualityError("failed to decode date: %s" % e.__str__())
+
+    return Transaction(transaction_id, user_id, transaction_amount, transaction_category_id)
+
+
+class TransactionCategoryKPI:
+    def __init__(self, sum_amount: int, num_users: int):
+        """Join output KPI.
+
+        Args:
+            sum_amount (int): Total transactions amount.
+            num_users (int): Total numer of users.
+        """
+        self.sum_amount: int = sum_amount
+        self.num_users: int = num_users
+
+    def __lt__(self, other: "TransactionCategoryKPI") -> bool:
+        return self.sum_amount < other.sum_amount
+
+    def __eq__(self, other: "TransactionCategoryKPI") -> bool:
+        return self.sum_amount == other.sum_amount and self.num_users == self.num_users
+
+
+class TransactionCategoryKPICalc(TransactionCategoryKPI):
+    """Defines the "container" for KPI fields calculation per transaction category."""
+
+    def __init__(self, kpi: TransactionCategoryKPI = None) -> None:
+        super().__init__(kpi.sum_amount, kpi.num_users) if kpi is not None else super().__init__(0, 0)
+
+        self._unique_users: set[UUID] = set()
+
+    def add_transaction(self, transaction: Transaction) -> None:
+        """Adds a transaction data.
+
+        Args:
+            transaction (int): Transaction object.
+        """
+        self.sum_amount += transaction.transaction_amount
+        self._unique_users.add(transaction.user_id)
+
+    def calculate(self):
+        self.num_users = len(self._unique_users)
+        del self._unique_users
+
+
+class JOINResult(dict[int, TransactionCategoryKPICalc]):
+    """Define the class to keep results of inner join."""
+
+    def add_transaction(self, transaction: Transaction) -> None:
+        """Adds a transaction.
+
+        Args:
+            transaction (Transaction): Transaction object.
+        """
+        kpi: TransactionCategoryKPICalc = self.get(transaction.transaction_category_id, TransactionCategoryKPICalc())
+        kpi.add_transaction(transaction)
+        self[transaction.transaction_category_id] = kpi
+
+    def calculate(self):
+        """Calculates the results."""
+        for v in self.values():
+            v.calculate()
+
+    def sort_by_transactions_amount(self, desc: bool = True) -> "JOINResult":
+        """Sorts by transaction_amount.
+
+        Args:
+            desc (bool): Descending order.
+
+        Note:
+            Inspired by https://writeonly.wordpress.com/2008/08/30/sorting-dictionaries-by-value-in-python-improved/.
+        """
+        return JOINResult(sorted(self.items(), key=itemgetter(1), reverse=desc))
+
+    def __eq__(self, other: "JOINResult") -> bool:
+        if len(self) != len(other):
+            return False
+
+        for kl, kr in zip(self.keys(), other.keys()):
+            if kl != kr:
+                return False
+
+            if self[kl] != other.get(kl, TransactionCategoryKPICalc()):
+                return False
+
+        return True
+
+    def __str__(self) -> str:
+        header: str = "transaction_category_id,sum_amount,num_users"
+        rows: str = "\n".join(set(f"{k},{v.sum_amount},{v.num_users}" for k, v in self.items()))
+        return f"{header}\n{rows}"
 
 
 def main(path_users: str, path_transactions: str, skip_header: bool = True) -> None:
@@ -123,11 +269,23 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> N
         print("no active users found")
         return
 
+    result: JOINResult = JOINResult()
 
     for row in CSVReader(path_transactions, skip_header):
-        transaction: Transaction = read_not_blocked_transaction(row)
+        transaction: Optional[Transaction] = new_not_blocked_transaction(row)
+
+        if transaction is None:
+            continue
+
+        # JOIN condition:
         if transaction.user_id not in active_users:
             continue
+
+        result.add_transaction(transaction)
+
+    result = result.sort_by_transactions_amount()
+
+    print(result)
 
 
 if __name__ == "__main__":
