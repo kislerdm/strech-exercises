@@ -82,6 +82,10 @@ Metrics:
 - Execution time
 - Memory allocation
 
+_References_:
+- https://wiki.python.org/moin/TimeComplexity
+- https://realpython.com/sorting-algorithms-python/
+
 ### Code quality
 
 Linting applied:
