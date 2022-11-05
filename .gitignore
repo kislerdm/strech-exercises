@@ -3,4 +3,5 @@
 vscode
 .pytest_cache
 .coverage
+.mypy_cache
 __pycache__
