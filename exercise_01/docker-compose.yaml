@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  python:
+    labels:
+      - 'test'
+    build:
+      dockerfile: Dockerfile_dev
+      context: .
+      tags:
+        - 'jointask:py'
+    volumes:
+      - .:/src
+      - ./fixtures:/fixtures
+
+  db:
+    labels:
+      - 'test'
+    build:
+      dockerfile: Dockerfile
+      context: db
+      tags:
+        - 'jointask:db'
+    ports:
+      - '6432:5432'
+    depends_on:
+      - python
+    environment:
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: 'admin'
+    volumes:
+      - ./fixtures:/fixtures
