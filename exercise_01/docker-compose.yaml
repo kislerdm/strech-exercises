@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile_dev
       context: .
     labels:
-      - 'jointask:dev'
+      - 'jointask-dev'
     environment:
       BASE_DIR: '/data'
       NUM_USERS: 1000
@@ -26,6 +26,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: db
+    labels:
+      - 'jointask-db'
     ports:
       - '6432:5432'
     depends_on:
@@ -44,6 +46,8 @@ services:
 
   exec:
     image: python:3.9.15-slim-buster
+    labels:
+      - 'jointask-exec'
     volumes:
       - ./solution/main.py:/main.py
     deploy:

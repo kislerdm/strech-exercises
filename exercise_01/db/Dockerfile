@@ -1,7 +1,5 @@
 FROM postgres:9.6.24-alpine
 
-VOLUME /data
-
 ENV PGDATA "/data/pgdata"
 ENV POSTGRES_USER "admin"
 ENV POSTGRES_PASSWORD "admin"

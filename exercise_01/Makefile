@@ -4,7 +4,7 @@ help: ## Prints help message.
 	@ grep -h -E '^[a-zA-Z0-9_-].+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[1m%-30s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Setup required env dependencies.
-	@ docker compose up -d --build --quiet-pull --remove-orphans
+	@ docker compose up --build --quiet-pull --remove-orphans -d
 
 tests: ## Runs unit and data validation tests.
 	@ docker compose run --entrypoint="pytest" \
