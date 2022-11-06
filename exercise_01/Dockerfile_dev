@@ -1,13 +1,10 @@
 FROM python:3.9.15-slim-buster
 
 COPY requirements_dev.txt requirements_dev.txt
-COPY generate_data.py /generate_data.py
 
 RUN pip install -r requirements_dev.txt \
     && rm requirements_dev.txt
 
 WORKDIR /src
-COPY tox.ini tox.ini
 
-CMD ["python", "/generate_data.py"]
 ENTRYPOINT ["/bin/bash"]

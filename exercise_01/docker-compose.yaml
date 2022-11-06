@@ -1,17 +1,40 @@
 version: '3.8'
 
 services:
-  exec:
+  dev:
+    image: 'jointask-dev'
     build:
       dockerfile: Dockerfile_dev
       context: .
-      tags:
-        - 'jointask:exec'
+    labels:
+      - 'jointask:dev'
     environment:
-      BASE_DIR: '/fixtures/test'
+      BASE_DIR: '/data'
       NUM_USERS: 1000
     volumes:
-      - .:/src
+      - ./fixtures/tests:/data
+      - ./generate_data.py:/generate_data.py
+    entrypoint: ["python", "/generate_data.py"]
+    deploy:
+      resources:
+        limits:
+          memory: '1G'
+          cpus: '1'
+
+  db:
+    image: 'jointask-db'
+    build:
+      dockerfile: Dockerfile
+      context: db
+    ports:
+      - '6432:5432'
+    depends_on:
+      - dev
+    environment:
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: 'admin'
+      BASE_DIR: '/fixtures/tests'
+    volumes:
       - ./fixtures:/fixtures
     deploy:
       resources:
@@ -19,22 +42,10 @@ services:
           memory: '512m'
           cpus: '.5'
 
-  db:
-    build:
-      dockerfile: Dockerfile
-      context: db
-      tags:
-        - 'jointask:db'
-    ports:
-      - '6432:5432'
-    depends_on:
-      - exec
-    environment:
-      POSTGRES_USER: 'admin'
-      POSTGRES_PASSWORD: 'admin'
-      BASE_DIR: '/fixtures/test'
+  exec:
+    image: python:3.9.15-slim-buster
     volumes:
-      - ./fixtures:/fixtures
+      - ./solution/main.py:/main.py
     deploy:
       resources:
         limits:
