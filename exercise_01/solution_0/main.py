@@ -302,8 +302,9 @@ def main(path_users: str, path_transactions: str, skip_header: bool = True) -> O
 
 
 if __name__ == "__main__":
-    path_users_csv = os.getenv("PATH_USERS", "/data/users.csv")
-    path_transactions_csv = os.getenv("PATH_TRANSACTIONS", "/data/transactions.csv")
+    base_dir = os.getenv("BASE_DIR", "/data")
+    path_users_csv = f"{base_dir}/users.csv"
+    path_transactions_csv = f"{base_dir}/transactions.csv"
 
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%dT%H:%M:%S.%03d"

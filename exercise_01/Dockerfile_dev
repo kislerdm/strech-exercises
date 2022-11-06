@@ -7,5 +7,7 @@ RUN pip install -r requirements_dev.txt \
     && rm requirements_dev.txt
 
 WORKDIR /src
+COPY tox.ini tox.ini
 
-CMD ["/bin/bash"]
+CMD ["python", "/generate_data.py"]
+ENTRYPOINT ["/bin/bash"]

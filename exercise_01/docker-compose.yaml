@@ -1,21 +1,25 @@
 version: '3.8'
 
 services:
-  python:
-    labels:
-      - 'test'
+  exec:
     build:
       dockerfile: Dockerfile_dev
       context: .
       tags:
-        - 'jointask:py'
+        - 'jointask:exec'
+    environment:
+      BASE_DIR: '/fixtures/test'
+      NUM_USERS: 1000
     volumes:
       - .:/src
       - ./fixtures:/fixtures
+    deploy:
+      resources:
+        limits:
+          memory: '512m'
+          cpus: '.5'
 
   db:
-    labels:
-      - 'test'
     build:
       dockerfile: Dockerfile
       context: db
@@ -24,9 +28,15 @@ services:
     ports:
       - '6432:5432'
     depends_on:
-      - python
+      - exec
     environment:
       POSTGRES_USER: 'admin'
       POSTGRES_PASSWORD: 'admin'
+      BASE_DIR: '/fixtures/test'
     volumes:
       - ./fixtures:/fixtures
+    deploy:
+      resources:
+        limits:
+          memory: '512m'
+          cpus: '.5'

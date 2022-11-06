@@ -5,6 +5,7 @@ set -o errexit
 readonly REQUIRED_ENV_VARS=(
   "POSTGRES_USER"
   "POSTGRES_DB"
+  "BASE_DIR"
 )
 
 check_env_vars_set() {
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 ;
 
 COPY transactions
-FROM '/fixtures/transactions.csv'
+FROM '${BASE_DIR}/transactions.csv'
 DELIMITER ','
 CSV HEADER
 ;
@@ -46,7 +47,7 @@ CREATE TABLE IF NOT EXISTS users (
 ;
 
 COPY users
-FROM '/fixtures/users.csv'
+FROM '${BASE_DIR}/users.csv'
 DELIMITER ','
 CSV HEADER
 ;
@@ -71,7 +72,7 @@ ORDER BY sum_amount DESC
 ;
 
 COPY result
-TO '/fixtures/result.csv'
+TO '${BASE_DIR}/result.csv'
 DELIMITER ','
 CSV HEADER
 ;
