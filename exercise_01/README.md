@@ -83,6 +83,7 @@ Metrics:
 - Memory allocation
 
 _References_:
+
 - https://wiki.python.org/moin/TimeComplexity
 - https://realpython.com/sorting-algorithms-python/
 
@@ -97,6 +98,55 @@ Linting applied:
 
 ## Solution
 
+The solution is provided in the [solution](solution) directory.
+
+### How to run
+
+Requirements:
+
+- [docker](https://docs.docker.com/get-docker/) ~> 20.10
+- [gnuMake](https://www.gnu.org/software/make/)
+
+**Note**: the tests have been performed with docker compose v2. Please use it especially consider a switch since it's
+been in [GA since over 6 months](https://www.docker.com/blog/announcing-compose-v2-general-availability/) already as of Oct. 2022. 
+
+#### Commands
+
+Run the command to see available commands:
+
+```commandline
+make help
+```
+
+_First_, set the environment to perform tests and run the application:
+
+```commandline
+make setup
+```
+
+_Second_, run the unit tests as well as the [data quality assessment](#code-quality) test:
+
+```commandline
+make tests
+```
+
+_To run the application_, execute the following command:
+
+```commandline
+make run
+```
+
+**Note**: the application uses the csv files generated at the setup step using [the script](generate_data.py).
+
+Consider the following option to use custom `users.csv` and `transactions.csv` files as the input data:
+
+- move the files to `./fixture/tests` directory and run the application;
+- place the csv files in a single directory and execute the command:
+
+```commandline
+make run BASE_DIR=##path/to/users/and/transactions/csv##
+```
+
 ### Product Questions
 
 - Does input's validation required?
@@ -106,7 +156,8 @@ Linting applied:
 ### Tech Questions and Decisions
 
 - How to store user_id and transaction_id in memory?
-    - UUID vs. str: what leads to higher memory allocation? <br>_The answer_: str required more memory to store an object:
+    - UUID vs. str: what leads to higher memory allocation? <br>_The answer_: str required more memory to store an
+      object:
 
 ```commandline
 In [1]: uid = "9f709688-326d-4834-8075-1a477d590af7"
@@ -122,7 +173,8 @@ In [5]: uid_uuid.__sizeof__()
 Out[5]: 40
 ```
 
-- Would use of `dataclass` lead to higher memory allocation? <br> <br>_The answer_: no, en contraire; on top, it improves code quality:
+- Would use of `dataclass` lead to higher memory allocation? <br> <br>_The answer_: no, en contraire; on top, it
+  improves code quality:
 
 ```commandline
 In [1]: from uuid import UUID
