@@ -108,7 +108,8 @@ Requirements:
 - [gnuMake](https://www.gnu.org/software/make/)
 
 **Note**: the tests have been performed with docker compose v2. Please use it especially consider a switch since it's
-been in [GA since over 6 months](https://www.docker.com/blog/announcing-compose-v2-general-availability/) already as of Oct. 2022. 
+been in [GA since over 6 months](https://www.docker.com/blog/announcing-compose-v2-general-availability/) already as of
+Oct. 2022.
 
 #### Commands
 
@@ -269,4 +270,136 @@ Horizontal scaling is achieved by parallel execution of computations following t
 
 Apart from networking and orchestration overhead, the _reduce_ operation could hit the resource bottleneck of the
 initial question. In such case, the "map-reduce" process could be repeated, or the resources quota for the "reduce node"
-could be raised.   
+could be raised.
+
+## Performance Analysis
+
+The section touches upon the logic performance.
+
+The benchmarking was performed on the data generated using the [script](generate_data.py):
+
+- users.csv with 1 Mio. rows
+- transactions.csv with 100 Mio. rows
+
+| Logic                   | Elapsed Time [sec.] | RAM uplift [Mb] | CPU max [% of .5 unit] |
+|:------------------------|--------------------:|----------------:|-----------------------:|
+| [Reference](#reference) |              70.184 |            ~ 50 |                   < 60 |
+| [Solution](solution)    |             434.595 |           ~ 250 |                   < 60 |
+
+_Note_ that the benchmark is based on a single run on a MacBook Pro with
+Apple M1 Pro and 16Gb of RAM. It shall only be considered as a qualitative illustration rather than quantitative
+thorough comparison taking statical significance into account.
+
+### Reference
+
+Postgres with the buffer setting of 128 kB (minimal possible value) is used as the reference. Its performance is
+illustrated as following:
+
+```commandline
+EXPLAIN ANALYSE INSERT INTO benchmark.result
+SELECT t.transaction_category_id,
+       SUM(t.transaction_amount) AS sum_amount,
+       COUNT(DISTINCT t.user_id) AS num_users
+FROM benchmark.transactions t
+         JOIN benchmark.users u USING (user_id)
+WHERE NOT t.is_blocked
+  AND u.is_active
+GROUP BY t.transaction_category_id
+ORDER BY sum_amount DESC
+;
+QUERY
+PLAN                                                                               
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Insert on result  (cost=2214662.55..2214662.74 rows=11 width=12) (actual time=70110.004..70110.004 rows=0 loops=1)
+   ->  Subquery Scan on "*SELECT*"  (cost=2214662.55..2214662.74 rows=11 width=12) (actual time=70109.873..70109.875 rows=11 loops=1)
+         ->  Sort  (cost=2214662.55..2214662.58 rows=11 width=20) (actual time=70109.861..70109.861 rows=11 loops=1)
+               Sort Key: (sum(t.transaction_amount)) DESC
+               Sort Method: quicksort  Memory: 25kB
+               ->  GroupAggregate  (cost=2209223.12..2214662.36 rows=11 width=20) (actual time=69394.877..70109.832 rows=11 loops=1)
+                     Group Key: t.transaction_category_id
+                     ->  Sort  (cost=2209223.12..2210582.90 rows=543913 width=24) (actual time=69307.383..69539.604 rows=899728 loops=1)
+                           Sort Key: t.transaction_category_id
+                           Sort Method: external merge  Disk: 29872kB
+                           ->  Merge Join  (cost=2131723.26..2146252.70 rows=543913 width=24) (actual time=67670.559..68884.249 rows=899728 loops=1)
+                                 Merge Cond: (t.user_id = u.user_id)
+                                 ->  Sort  (cost=2048810.31..2051193.65 rows=953335 width=24) (actual time=66815.998..67139.747 rows=999824 loops=1)
+                                       Sort Key: t.user_id
+                                       Sort Method: external merge  Disk: 33192kB
+                                       ->  Seq Scan on transactions t  (cost=0.00..1934580.64 rows=953335 width=24) (actual time=2.073..65180.612 rows=999824 loops=1)
+                                             Filter: (NOT is_blocked)
+                                             Rows Removed by Filter: 99000176
+                                 ->  Materialize  (cost=82912.95..85795.37 rows=576485 width=16) (actual time=854.553..1347.073 rows=1231088 loops=1)
+                                       ->  Sort  (cost=82912.95..84354.16 rows=576485 width=16) (actual time=854.548..1218.244 rows=900081 loops=1)
+                                             Sort Key: u.user_id
+                                             Sort Method: external merge  Disk: 22824kB
+                                             ->  Seq Scan on users u  (cost=0.00..17899.70 rows=576485 width=16) (actual time=0.135..256.031 rows=900081 loops=1)
+                                                   Filter: is_active
+                                                   Rows Removed by Filter: 99919
+ Planning time: 1.170 ms
+ Execution time: 70183.707 ms
+(27 rows)
+```
+
+Results:
+
+```commandline
+ SELECT * FROM benchmark.result;
+ transaction_category_id | sum_amount | num_users 
+-------------------------+------------+-----------
+                       5 |  411126340 |     78431
+                       8 |  410552270 |     78442
+                       9 |  410413764 |     78567
+                       0 |  410069189 |     78288
+                       3 |  409259459 |     78225
+                       6 |  408855294 |     78056
+                      10 |  408843738 |     78339
+                       2 |  408564886 |     78055
+                       7 |  408210562 |     77881
+                       4 |  407689371 |     77753
+                       1 |  407210378 |     77939
+(11 rows)
+```
+
+Database read from cache illustration:
+
+```commandline
+SELECT heap_blks_read, heap_blks_hit from pg_statio_user_tables where relname='transactions' and schemaname='benchmark';
+heap_blks_read | heap_blks_hit
+----------------+---------------
+1899420 |       1868898
+(1 row)
+
+SELECT heap_blks_read, heap_blks_hit from pg_statio_user_tables where relname='users' and schemaname='benchmark';
+heap_blks_read | heap_blks_hit
+----------------+---------------
+19113 |         12735
+```
+
+The resources consumption assessed using `docker stats`:
+
+- CPU: up to 50% of 0.5 CPU
+- RAM: up to 150Mb from 100Mb
+
+## Solution
+
+```commandline
+make run BASE_DIR=${PWD}/fixtures/benchmark
+2022-11-06T22:07:55.006 [INFO] elapsed time: 434.595 sec.
+transaction_category_id,sum_amount,num_users
+5,411126340,78431
+8,410552270,78442
+9,410413764,78567
+0,410069189,78288
+3,409259459,78225
+6,408855294,78056
+10,408843738,78339
+2,408564886,78055
+7,408210562,77881
+4,407689371,77753
+1,407210378,77939
+```
+
+The resources consumption assessed using `docker stats`:
+
+- CPU: up to 50% of 0.5 CPU
+- RAM: up to 270Mb from <10Mb
