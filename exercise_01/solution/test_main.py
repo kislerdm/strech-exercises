@@ -1,9 +1,9 @@
 import os
 import sys
 from io import StringIO
+from typing import Optional
 from uuid import UUID, uuid4
 
-from typing import Optional
 import pytest
 from mock_open import MockOpen  # type: ignore
 
