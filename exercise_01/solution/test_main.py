@@ -302,6 +302,7 @@ def test_data_quality():
         want = file.read()
 
         result = main(f"{base_dir}/users.csv", f"{base_dir}/transactions.csv")
+
         with Capturing() as stdout:
             print(result)
 

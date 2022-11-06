@@ -11,12 +11,19 @@ tests: ## Runs unit and data validation tests.
 		-v $(PWD)/solution:/src \
 		-v $(PWD)/fixtures/tests:/data \
 		-e BASE_DIR=/data \
-	  dev --cov=main -v .
+	  dev --cov=main -vs .
 
 BASE_DIR := $(PWD)/fixtures/tests
 
 run: ## Runs the application.
 	@ docker compose run --entrypoint="python" \
+		-v $(BASE_DIR):/data \
+		-e BASE_DIR=/data \
+	  exec /main.py
+
+
+profiling: ## Runs application profiling.
+	@ docker compose run --entrypoint="python -m cProfile -s tottime" \
 		-v $(BASE_DIR):/data \
 		-e BASE_DIR=/data \
 	  exec /main.py

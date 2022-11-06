@@ -147,6 +147,12 @@ Consider the following option to use custom `users.csv` and `transactions.csv` f
 make run BASE_DIR=##path/to/users/and/transactions/csv##
 ```
 
+Run the command to perform application profiling on pre-generated data:
+
+```commandline
+make profiling
+```
+
 ### Product Questions
 
 - Does input's validation required?
