@@ -7,7 +7,7 @@ create table if not exists dim_dep_agreement (
      actual_to_dt   date,
      client_id      int,
      product_id     int,
-     interest_rate  float
+     interest_rate  float4
 )
 ;
 
@@ -25,38 +25,71 @@ insert into dim_dep_agreement values
 ;
 
 create table if not exists dim_dep_agreement_compacted (
-    sk series8,
+    sk             serial,
     agrmnt_id      int,
     actual_from_dt date,
     actual_to_dt   date,
     client_id      int,
     product_id     int,
-    interest_rate  float
+    interest_rate  float4
 )
 ;
 */
+
+CREATE TABLE IF NOT EXISTS dim_dep_agreement_compacted AS
 WITH
-    rnk as (
-        select agrmnt_id, actual_from_dt, actual_to_dt, client_id, product_id, interest_rate
-        , lag((client_id, product_id, interest_rate), 1) over (partition by agrmnt_id)
-       from dim_dep_agreement as a
+    deduplication_ranges AS (
+        SELECT agrmnt_id
+             , actual_from_dt
+             , actual_to_dt
+             , client_id
+             , product_id
+             , interest_rate
+             , COALESCE(LAG((client_id, product_id, interest_rate), 1) OVER () != (client_id, product_id, interest_rate), TRUE)  AS range_l
+             , COALESCE(LAG((client_id, product_id, interest_rate), -1) OVER () != (client_id, product_id, interest_rate), TRUE) AS range_r
+       FROM dim_dep_agreement
+       ORDER BY
+           agrmnt_id
+         , actual_from_dt
+         , actual_to_dt
     )
     ,
-    limits as (
-        select *
-             , min(rk) over (partition by agrmnt_id, client_id, product_id, interest_rate) as rk_min
-             , max(rk) over (partition by agrmnt_id, client_id, product_id, interest_rate) as rk_max
-        from rnk
+    deduplication_trivial AS (
+        SELECT agrmnt_id, actual_from_dt, actual_to_dt, client_id, product_id, interest_rate
+        FROM deduplication_ranges
+        WHERE range_l AND range_r
     )
-select a.agrmnt_id
-     , a.actual_from_dt
-     , b.actual_to_dt
-     , a.client_id
-     , a.product_id
-     , a.interest_rate
-from limits as a
-join limits as b using (agrmnt_id, client_id, product_id, interest_rate)
-where a.rk = a.rk_min
-and b.rk = b.rk_max
+    ,
+    duplication_ranges_left AS (
+        SELECT agrmnt_id, actual_from_dt, client_id, product_id, interest_rate
+        FROM deduplication_ranges
+        WHERE range_l AND NOT range_r
+    )
+    ,
+    duplication_ranges_right AS (
+        SELECT agrmnt_id, actual_to_dt, client_id, product_id, interest_rate
+        FROM deduplication_ranges
+        WHERE range_r AND NOT range_l
+    )
+    ,
+    deduplication_result AS (
+        SELECT duplication_ranges_left.agrmnt_id
+             , duplication_ranges_left.actual_from_dt
+             , duplication_ranges_right.actual_to_dt
+             , duplication_ranges_left.client_id
+             , duplication_ranges_left.product_id
+             , duplication_ranges_left.interest_rate
+        FROM duplication_ranges_left
+        JOIN duplication_ranges_right USING (agrmnt_id, client_id, product_id, interest_rate)
+        UNION
+        SELECT *
+        FROM deduplication_trivial
+        ORDER BY
+            agrmnt_id
+          , actual_from_dt
+          , actual_to_dt
+    )
+SELECT row_number() OVER () AS sk
+     , deduplication_result.*
+FROM deduplication_result
 ;
-
