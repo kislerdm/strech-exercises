@@ -8,18 +8,17 @@ WITH
              , product_id
              , interest_rate
              , COALESCE(
-                LAG((client_id, product_id, interest_rate), 1) OVER () != (client_id, product_id, interest_rate),
-                TRUE
+                  LAG((client_id, product_id, interest_rate), 1) OVER () != (client_id, product_id, interest_rate),
+                  TRUE
                ) AS range_l
              , COALESCE(
-                LAG((client_id, product_id, interest_rate), -1) OVER () != (client_id, product_id, interest_rate),
-                TRUE
+                  LAG((client_id, product_id, interest_rate), -1) OVER () != (client_id, product_id, interest_rate),
+                  TRUE
                ) AS range_r
         FROM dim_dep_agreement
-        ORDER BY
-            agrmnt_id
-          , actual_from_dt
-          , actual_to_dt
+        ORDER BY agrmnt_id
+               , actual_from_dt
+               , actual_to_dt
     ),
 
     deduplication_trivial AS (
@@ -52,10 +51,9 @@ WITH
         UNION
         SELECT *
         FROM deduplication_trivial
-        ORDER BY
-            agrmnt_id
-          , actual_from_dt
-          , actual_to_dt
+        ORDER BY agrmnt_id
+               , actual_from_dt
+               , actual_to_dt
     )
 
 SELECT row_number() OVER () AS sk

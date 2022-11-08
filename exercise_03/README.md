@@ -39,3 +39,26 @@ to 2015-07-05 (`actual_to_dt`).
 - The table `dim_dep_agreement_compacted` should have "smooth history" for every agreement (`agrmnt_id`), i.e. no gaps
   or intersections for the validity intervals (from `actual_from_dt` to `actual_to_dt`).
 - The query logic is described and documented.
+
+## Solution
+
+Please find the solution in the [solution.sql](solution.sql).
+
+### Tests
+
+_Requirements_:
+
+- [docker](https://docs.docker.com/get-docker/) ~> 20.10
+- [gnuMake](https://www.gnu.org/software/make/)
+
+**Note**: the docker compose v2 is used, i.e. `docker compose` instead of `docker-compose` command.
+
+Run tests by executing the command:
+
+```commandline
+make tests
+```
+
+## The Logic
+
+TODO
