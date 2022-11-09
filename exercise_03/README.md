@@ -59,6 +59,18 @@ Run tests by executing the command:
 make tests
 ```
 
+Expected output:
+
+```commandline
+Run tests
+INFO:  TEST: rows count must match. <PASS>
+INFO:  TEST: business attributes and intervals must match. <PASS>
+ test 
+------
+ 
+(1 row)
+```
+
 ## The Logic
 
 TODO
