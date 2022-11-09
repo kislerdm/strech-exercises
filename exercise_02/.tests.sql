@@ -1,3 +1,4 @@
+CREATE TABLE IF NOT EXISTS got AS
 -- fast and flexible:
 WITH
     transactions_daily AS (
@@ -85,3 +86,7 @@ ORDER BY 2, 3
 -- Planning time: 0.441 ms
 -- Execution time: 4545.436 ms
 
+SELECT test('query results must match the reference', SUM(COALESCE(want.total - got.total, 0)) = 0)
+FROM want
+LEFT JOIN got USING (transaction_id, user_id, date)
+;

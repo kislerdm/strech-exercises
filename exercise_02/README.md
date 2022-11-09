@@ -41,3 +41,37 @@ The desired table would look as following.
 
 - Postgres compatible [ANSI compliant](https://www.oninit.com/manual/informix/100/ddi/ddi32.htm) SQL query is designed.
 - Steps of the query planner are described to explain what a database engine considers for effectively query execution.
+
+## Solution
+
+Please find the solution in the [solution.sql](solution.sql).
+
+### Tests
+
+_Requirements_:
+
+- [docker](https://docs.docker.com/get-docker/) ~> 20.10
+- [gnuMake](https://www.gnu.org/software/make/)
+
+**Note**: the docker compose v2 is used, i.e. `docker compose` instead of `docker-compose` command.
+
+Run tests by executing the command:
+
+```commandline
+make tests
+```
+
+Expected output:
+
+```commandline
+Run tests
+INFO:  TEST: optimised query results must match the reference. <PASS>
+ test 
+------
+ 
+(1 row)
+```
+
+## The Logic
+
+TODO

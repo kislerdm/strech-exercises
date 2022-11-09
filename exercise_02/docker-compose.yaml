@@ -1,0 +1,49 @@
+version: '3.8'
+
+networks:
+  custom:
+    name: 'ex2'
+
+services:
+  generate:
+    image: 'golang:1.19.3'
+    labels:
+      - 'ex2-generate-want'
+    environment:
+      BASE_DIR: '/fixtures'
+    volumes:
+      - ./fixtures:/fixtures
+      - .:/app
+    working_dir: '/app'
+    entrypoint: ["go", "run", "main.go"]
+    deploy:
+      resources:
+        limits:
+          memory: '512mb'
+          cpus: '0.5'
+
+  db:
+    image: 'ex2-provision-db'
+    build:
+      dockerfile: Dockerfile
+      context: .
+    labels:
+      - 'ex2-provision-db'
+    ports:
+      - '25432:5432'
+    depends_on:
+      - generate
+    environment:
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: 'admin'
+      POSTGRES_DB: 'admin'
+      BASE_DIR: '/fixtures'
+    volumes:
+      - ./fixtures:/fixtures
+    networks:
+      - custom
+    deploy:
+      resources:
+        limits:
+          memory: '512m'
+          cpus: '.5'
