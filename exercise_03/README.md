@@ -51,23 +51,10 @@ _Requirements_:
 - [docker](https://docs.docker.com/get-docker/) ~> 20.10
 - [gnuMake](https://www.gnu.org/software/make/)
 
-**Note**: the docker compose v2 is used, i.e. `docker compose` instead of `docker-compose` command.
-
 Run tests by executing the command:
 
 ```commandline
 make tests
-```
-
-Expected output:
-
-```commandline
-Run tests
-INFO:  TEST: business attributes and intervals must match. <PASS>
- test 
-------
- 
-(1 row)
 ```
 
 ## The Logic

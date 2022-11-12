@@ -27,7 +27,8 @@ setup: ## Setup required env dependencies.
 
 .tests:
 	@ echo "Run tests"
-	@ cat tests_setup.sql solution.sql tests.sql > .tests.sql
+	@ echo "CREATE TABLE IF NOT EXISTS got AS " > .tests.sql
+	@ cat solution.sql tests.sql >> .tests.sql
 	@ docker exec ex2 psql -U admin -c "$$(cat .tests.sql)"
 
 clean: ## Stop docker containers.
