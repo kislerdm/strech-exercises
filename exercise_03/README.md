@@ -63,7 +63,6 @@ Expected output:
 
 ```commandline
 Run tests
-INFO:  TEST: rows count must match. <PASS>
 INFO:  TEST: business attributes and intervals must match. <PASS>
  test 
 ------
