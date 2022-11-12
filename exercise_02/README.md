@@ -77,19 +77,20 @@ INFO:  TEST: optimised query results must match the reference. <PASS>
 ## The Query Execution Process
 
 Although query execution details depend on the type and version of database engine, all relational databases operate in
-the request-response communication model:   
+the request-response communication model:
 
 - Establishment of a client **connection**;
 - Deserialization of the request query into the **raw** [**AST**](http://ns.inria.fr/ast/sql/index.html);
 - Generation of **query AST** by mapping the raw AST onto underlying database objects referenced in the request query;
-- Generation of **query plan** by selecting optimal strategy to traverse the query AST;
+- Generation of **query plan** by selecting optimal strategy to execute the query;
 - **Execution** of the query plan, and results bufferization;
 - **Return** the execution result back to the client.
 
 [Postgres](https://www.postgresql.org/) is assumed for illustration purposes. Its engine roughly follows the sequence
 when a _client_ attempts to execute a query.
 
-1. _Connection stage_. A TCP connection with the client is being authenticated, and a dedicated **backend process** to
+1. _Establish connection_. A TCP connection with the client is being authenticated, and a dedicated **backend process**
+   to
    handle requests is initiated by the orchestrator, _postmaster_.
    <br>One backend process corresponds to exactly one client following the "process per user" model. In the context, the
    client is the process which understand the database communication protocol. _Note_: SaaS vendors may provide
@@ -97,13 +98,21 @@ when a _client_ attempts to execute a query.
    Restful API. <br>Once a connection is established, the client transmits a query and waits for the server's
    response. _Note_: SaaS vendors may support async execution providing requests orchestration layer.
 
-2. _Parser stage_. The backend process performs lexical and grammatical analysis, and validation of the query arrived as
-   plain text. It returns an error to the client if validation fails; it passes the _parse tree_ to the next step of the
-   parser stage otherwise.
-    1. The query is scanned and tokenized. A _token_ is generated for every found _SQL key word_.
-    2. Generated tokens are analyzed against the _grammar rules_. Corresponding _action_ is applied every time a token
-       matches the rule. The results of actions are stored to the list of "raw" trees.
-3.
+2. _Parse input_. The query arrived as plain text is deserialized as the list of raw (un-analyzed) parse trees. The
+   query _syntactic_ structure is evaluated during the parsing process.
+    1. The _lexical analysis_: the query is scanned and tokenized; a _token_ is generated for every found SQL key word.
+    2. The _grammar analysis_: the generated tokens are analyzed against the _grammar rules_. Corresponding _action_ is
+       applied every time a token matches the rule. The results of actions are stored to the list of trees.
+
+3. _Analyse semantics_. The transformation process takes the raw tree to generate the _query tree_ by
+   making system catalog lookups to identify the tables, functions, operators referenced in the request query. The query
+   tree and the raw tree are structurally similar, but the query tree contains data types and makes
+
+4. _Re-write_. The query tree is being re-written according to the _rules_ in the system catalog. For example, if the
+   query references a view, its underlying query will be embodied explicitly to the tree.
+
+5. _Plan execution_. The query tree can be traversed in a plethora of ways. The optimizer assesses possible ways to
+   select the fasted.
 
 ## References
 
