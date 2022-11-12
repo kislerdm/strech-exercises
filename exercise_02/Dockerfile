@@ -1,4 +1,4 @@
-FROM postgres:9.6.24-alpine
+FROM postgres:15.1-alpine3.16
 
 ENV PGDATA "/data/pgdata"
 ENV POSTGRES_USER "admin"

@@ -112,7 +112,7 @@ when a _client_ attempts to execute a query.
    query references a view, its underlying query will be embodied explicitly to the tree.
 
 5. _Plan execution_. The query tree can be traversed in a plethora of ways. The optimizer assesses possible ways to
-   select the fasted.
+   select the fastest.
 
 ## References
 

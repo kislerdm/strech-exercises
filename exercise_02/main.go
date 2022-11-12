@@ -2,16 +2,25 @@
 package main
 
 import (
-	_ "embed"
 	"encoding/csv"
 	"errors"
 	"io"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
+
+func main() {
+	basePath := os.Getenv("BASE_DIR")
+	if basePath == "" {
+		log.Fatalln("BASE_DIR env variable must be specified")
+	}
+
+	if err := Generate(basePath); err != nil {
+		log.Fatalln(err)
+	}
+}
 
 type transaction struct {
 	TransactionID         string
@@ -33,9 +42,9 @@ func (tr *transactions) Add(t transaction) {
 	*tr = append(*tr, t)
 }
 
-type DailyUniqueTransactionsPerUser []string
+type dailyUniqueTransactionsPerUser []string
 
-func (v *DailyUniqueTransactionsPerUser) Add(s string) {
+func (v *dailyUniqueTransactionsPerUser) Add(s string) {
 	for _, el := range *v {
 		if s == el {
 			return
@@ -45,15 +54,8 @@ func (v *DailyUniqueTransactionsPerUser) Add(s string) {
 }
 
 type userDailyUniqueTransactions struct {
-	ID    *DailyUniqueTransactionsPerUser
+	ID    *dailyUniqueTransactionsPerUser
 	Count int
-}
-
-func AddUniqueUser(v *userDailyUniqueTransactions, transactionID string) {
-	if v != nil {
-		v.ID.Add(transactionID)
-		v.Count = len(*v.ID)
-	}
 }
 
 func (v *userDailyUniqueTransactions) Add(transactionID string) {
@@ -67,7 +69,7 @@ func (u users) Add(userID string, transactionID string, date time.Time) {
 	if _, ok := u[userID]; !ok {
 		u[userID] = map[time.Time]*userDailyUniqueTransactions{
 			date: {
-				ID:    &DailyUniqueTransactionsPerUser{transactionID},
+				ID:    &dailyUniqueTransactionsPerUser{transactionID},
 				Count: 1,
 			},
 		}
@@ -76,7 +78,7 @@ func (u users) Add(userID string, transactionID string, date time.Time) {
 
 	if _, ok := u[userID][date]; !ok {
 		u[userID][date] = &userDailyUniqueTransactions{
-			ID:    &DailyUniqueTransactionsPerUser{transactionID},
+			ID:    &dailyUniqueTransactionsPerUser{transactionID},
 			Count: 1,
 		}
 	}
@@ -164,34 +166,39 @@ func reader(r io.Reader) (transactions, users, error) {
 	return transactions, users, nil
 }
 
-//go:embed fixtures/transactions.csv
-var transactionsStr string
-
-func main() {
-	base_dir := os.Getenv("BASE_DIR")
-	if base_dir == "" {
-		log.Fatalln("specify BASE_DIR environment variable ")
+func Generate(baseDir string) error {
+	if baseDir == "" {
+		return errors.New("base dir must be specified")
 	}
 
-	transactions, users, err := reader(strings.NewReader(transactionsStr))
+	pathIn := baseDir + "/transactions.csv"
+
+	fIn, err := os.Open(pathIn)
 	if err != nil {
-		log.Fatalln(err)
+		return err
+	}
+	defer func() { _ = fIn.Close() }()
+
+	transactions, users, err := reader(fIn)
+	if err != nil {
+		return err
 	}
 
+	log.Printf("generate aggregates for %d users\n", len(users))
 	results, err := join(transactions, users.CalculateTotalTransactionsPrev7Days())
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
-	fout, err := os.Create(base_dir + "/want.csv")
+	pathOut := baseDir + "/want.csv"
+
+	fOut, err := os.Create(pathOut)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
-	defer func() { _ = fout.Close() }()
+	defer func() { _ = fOut.Close() }()
 
-	if err := writer(results, []string{"transaction_id", "user_id", "date", "total_lookup_7days"}, fout); err != nil {
-		log.Fatalln(err)
-	}
+	return writer(results, []string{"transaction_id", "user_id", "date", "total_lookup_7days"}, fOut)
 }
 
 func join(t transactions, dailyTransactions dailyTransactions7days) ([]resultRow, error) {

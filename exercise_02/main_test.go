@@ -15,40 +15,40 @@ func Test_dailyUniqueTransactionsPerUser_Add(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		v    DailyUniqueTransactionsPerUser
+		v    dailyUniqueTransactionsPerUser
 		args args
-		want DailyUniqueTransactionsPerUser
+		want dailyUniqueTransactionsPerUser
 	}{
 		{
 			name: "add to empty",
-			v:    DailyUniqueTransactionsPerUser{},
+			v:    dailyUniqueTransactionsPerUser{},
 			args: args{
 				"foo",
 			},
-			want: DailyUniqueTransactionsPerUser{"foo"},
+			want: dailyUniqueTransactionsPerUser{"foo"},
 		},
 		{
 			name: "add to existing, not unique",
-			v:    DailyUniqueTransactionsPerUser{"foo"},
+			v:    dailyUniqueTransactionsPerUser{"foo"},
 			args: args{
 				"foo",
 			},
-			want: DailyUniqueTransactionsPerUser{"foo"},
+			want: dailyUniqueTransactionsPerUser{"foo"},
 		},
 		{
 			name: "add to existing, unique",
-			v:    DailyUniqueTransactionsPerUser{"foo"},
+			v:    dailyUniqueTransactionsPerUser{"foo"},
 			args: args{
 				"bar",
 			},
-			want: DailyUniqueTransactionsPerUser{"foo", "bar"},
+			want: dailyUniqueTransactionsPerUser{"foo", "bar"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
 				tt.v.Add(tt.args.s)
-				assert.Equal(t, tt.v, tt.want, "DailyUniqueTransactionsPerUser{}.Add() error")
+				assert.Equal(t, tt.v, tt.want, "dailyUniqueTransactionsPerUser{}.Add() error")
 			},
 		)
 	}
@@ -93,7 +93,7 @@ func Test_reader(t *testing.T) {
 						2022, 10, 18, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID:    &DailyUniqueTransactionsPerUser{"1cd42418-9f9a-42c2-bec5-ad8bc2bba426"},
+						ID:    &dailyUniqueTransactionsPerUser{"1cd42418-9f9a-42c2-bec5-ad8bc2bba426"},
 						Count: 1,
 					},
 				},
@@ -129,7 +129,7 @@ func Test_reader(t *testing.T) {
 						2022, 10, 18, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID:    &DailyUniqueTransactionsPerUser{"1cd42418-9f9a-42c2-bec5-ad8bc2bba426"},
+						ID:    &dailyUniqueTransactionsPerUser{"1cd42418-9f9a-42c2-bec5-ad8bc2bba426"},
 						Count: 1,
 					},
 				},
@@ -188,7 +188,7 @@ ea4f4705-e2f2-4833-9c5f-d0b261fc0dc0,2022-10-15,f1520d27-c7c2-4321-b411-61a7f8f6
 						2022, 10, 18, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID: &DailyUniqueTransactionsPerUser{
+						ID: &dailyUniqueTransactionsPerUser{
 							"1cd42418-9f9a-42c2-bec5-ad8bc2bba426", "ba4bec80-97ad-4637-824d-e110218b7ed2",
 						},
 						Count: 2,
@@ -199,7 +199,7 @@ ea4f4705-e2f2-4833-9c5f-d0b261fc0dc0,2022-10-15,f1520d27-c7c2-4321-b411-61a7f8f6
 						2022, 10, 15, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID:    &DailyUniqueTransactionsPerUser{"ea4f4705-e2f2-4833-9c5f-d0b261fc0dc0"},
+						ID:    &dailyUniqueTransactionsPerUser{"ea4f4705-e2f2-4833-9c5f-d0b261fc0dc0"},
 						Count: 1,
 					},
 				},
@@ -238,7 +238,7 @@ func Test_users_CalculateTotalTransactionsPrev7Days(t *testing.T) {
 						2022, 10, 18, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID: &DailyUniqueTransactionsPerUser{
+						ID: &dailyUniqueTransactionsPerUser{
 							"1cd42418-9f9a-42c2-bec5-ad8bc2bba426", "ba4bec80-97ad-4637-824d-e110218b7ed2",
 						},
 						Count: 2,
@@ -247,7 +247,7 @@ func Test_users_CalculateTotalTransactionsPrev7Days(t *testing.T) {
 						2022, 10, 12, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID: &DailyUniqueTransactionsPerUser{
+						ID: &dailyUniqueTransactionsPerUser{
 							"b578f45d-36f0-4d30-a78b-575befb2b2f7",
 							"3016a9af-6630-410f-b797-e65db92f4418",
 						},
@@ -257,7 +257,7 @@ func Test_users_CalculateTotalTransactionsPrev7Days(t *testing.T) {
 						2022, 10, 15, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID: &DailyUniqueTransactionsPerUser{
+						ID: &dailyUniqueTransactionsPerUser{
 							"614f3a09-9cab-4271-8c3a-d612f5dd828c",
 							"3949d893-2b56-40b7-a730-30ccc94a345f",
 							"45ae98cb-2055-4018-9bdf-b14fbba596dd",
@@ -270,7 +270,7 @@ func Test_users_CalculateTotalTransactionsPrev7Days(t *testing.T) {
 						2022, 10, 18, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID: &DailyUniqueTransactionsPerUser{
+						ID: &dailyUniqueTransactionsPerUser{
 							"1cd42418-9f9a-42c2-bec5-ad8bc2bba426", "ba4bec80-97ad-4637-824d-e110218b7ed2",
 						},
 						Count: 2,
@@ -279,7 +279,7 @@ func Test_users_CalculateTotalTransactionsPrev7Days(t *testing.T) {
 						2022, 10, 1, 0, 0, 0, 0,
 						time.UTC,
 					): &userDailyUniqueTransactions{
-						ID: &DailyUniqueTransactionsPerUser{
+						ID: &dailyUniqueTransactionsPerUser{
 							"b578f45d-36f0-4d30-a78b-575befb2b2f7",
 							"3016a9af-6630-410f-b797-e65db92f4418",
 						},
