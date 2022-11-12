@@ -26,12 +26,11 @@ import os
 import random
 import uuid
 from math import ceil
+
 from typing import Any
 
 
-def generate_transactions(users: dict[str, list[Any]]) -> dict[str, list[Any]]:
-    multiplication_factor = 100
-
+def generate_transactions(users: dict[str, list[Any]], multiplication_factor: int) -> dict[str, list[Any]]:
     num_users = len(users["data"])
     num_transactions = num_users * multiplication_factor
 
@@ -91,8 +90,12 @@ if __name__ == "__main__":
 
     num_users_data_sink_limit: int = 5000
     num_steps: int = ceil(num_users / num_users_data_sink_limit)
+    multiplication_factor: int = 100
 
-    print("generate transactions for %d users over %d steps" % (num_users, num_steps))
+    print(
+        "generate %d transactions for %d users over %d steps"
+        % (num_users * multiplication_factor, num_users, num_steps)
+    )
 
     for step in range(num_steps):
         print("step %d" % step)
@@ -100,7 +103,7 @@ if __name__ == "__main__":
         num_users_step = num_users_data_sink_limit if num_users_data_sink_limit < num_users else num_users
 
         users = generate_users(num_users_step)
-        transactions = generate_transactions(users)
+        transactions = generate_transactions(users, 100)
 
         write_data(f"{base_dir}/transactions.csv", transactions["header"], transactions["data"], step > 0)
 

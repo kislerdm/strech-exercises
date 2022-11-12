@@ -184,7 +184,7 @@ func Generate(baseDir string) error {
 		return err
 	}
 
-	log.Printf("generate aggregates for %d users\n", len(users))
+	log.Printf("generate aggregates for %d transactions of %d users\n", len(transactions), len(users))
 	results, err := join(transactions, users.CalculateTotalTransactionsPrev7Days())
 	if err != nil {
 		return err

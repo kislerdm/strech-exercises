@@ -1,9 +1,7 @@
 FROM postgres:15.1-alpine3.16
 
-ENV PGDATA "/data/pgdata"
 ENV POSTGRES_USER "admin"
 ENV POSTGRES_PASSWORD "admin"
-ENV POSTGRES_DB "postgres"
 
 ADD init.sh /docker-entrypoint-initdb.d/init.sh
 
