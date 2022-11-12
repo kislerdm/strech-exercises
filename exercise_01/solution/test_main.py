@@ -65,43 +65,43 @@ class TestReader:
     "file_content,want,is_error,error_msg",
     [
         (
-                """user_id,is_active
+            """user_id,is_active
         9f709688-326d-4834-8075-1a477d590af7,1
         999eb541-c1a0-4888-aeb6-92773fc60e69,0
         b923d15c-ce6d-4b2f-913f-31e87ebbcdc2,false
         b1ee6da9-aca5-4bc6-bcfb-21ace2185055,true
         """,
-                {UUID("9f709688-326d-4834-8075-1a477d590af7"), UUID("b1ee6da9-aca5-4bc6-bcfb-21ace2185055")},
-                False,
-                "",
+            {UUID("9f709688-326d-4834-8075-1a477d590af7"), UUID("b1ee6da9-aca5-4bc6-bcfb-21ace2185055")},
+            False,
+            "",
         ),
         (
-                """user_id,is_active
+            """user_id,is_active
         9f709688-326d-4834-8075-1a477d590af7,0
         999eb541-c1a0-4888-aeb6-92773fc60e69,0
         b923d15c-ce6d-4b2f-913f-31e87ebbcdc2,false
         b1ee6da9-aca5-4bc6-bcfb-21ace2185055,false
         """,
-                {},
-                False,
-                "",
+            {},
+            False,
+            "",
         ),
         (
-                """user_id,is_active
+            """user_id,is_active
         9f709688-326d-4834-8075-1a477d590af7
         """,
-                {},
-                True,
-                "wrong number of columns in row 1",
+            {},
+            True,
+            "wrong number of columns in row 1",
         ),
         (
-                """user_id,is_active
+            """user_id,is_active
         9f709688-326d-4834-8075-1a477d590af7,1
         1,1
         """,
-                {},
-                True,
-                "failed to decode user_id in row 2",
+            {},
+            True,
+            "failed to decode user_id in row 2",
         ),
     ],
 )
@@ -122,45 +122,45 @@ def test_read_active_users(mocker, file_content, want, is_error, error_msg):
     "row,want,is_error,error_msg",
     [
         (
-                [
-                    "ce861100-26f0-4f1a-a8e3-8d6b3ad7a0e8",
-                    "2022-01-01",
-                    "9f709688-326d-4834-8075-1a477d590af7",
-                    "1",
-                    "100",
-                    "1",
-                ],
-                None,
-                False,
-                "",
+            [
+                "ce861100-26f0-4f1a-a8e3-8d6b3ad7a0e8",
+                "2022-01-01",
+                "9f709688-326d-4834-8075-1a477d590af7",
+                "1",
+                "100",
+                "1",
+            ],
+            None,
+            False,
+            "",
         ),
         (
-                [
-                    "5c2e5c85-75e1-4137-bf13-529a000757f6",
-                    "2022-02-01",
-                    "b1ee6da9-aca5-4bc6-bcfb-21ace2185055",
-                    "true",
-                    "100",
-                    "1",
-                ],
-                None,
-                False,
-                "",
+            [
+                "5c2e5c85-75e1-4137-bf13-529a000757f6",
+                "2022-02-01",
+                "b1ee6da9-aca5-4bc6-bcfb-21ace2185055",
+                "true",
+                "100",
+                "1",
+            ],
+            None,
+            False,
+            "",
         ),
         (
-                [
-                    "3e6cdc49-f1c5-4ac6-9483-37622eed207a",
-                    "2022-01-01",
-                    "9f709688-326d-4834-8075-1a477d590af7",
-                    "0",
-                    "200",
-                    "1",
-                ],
-                Transaction(
-                    UUID("3e6cdc49-f1c5-4ac6-9483-37622eed207a"), UUID("9f709688-326d-4834-8075-1a477d590af7"), 200, 1
-                ),
-                False,
-                "",
+            [
+                "3e6cdc49-f1c5-4ac6-9483-37622eed207a",
+                "2022-01-01",
+                "9f709688-326d-4834-8075-1a477d590af7",
+                "0",
+                "200",
+                "1",
+            ],
+            Transaction(
+                UUID("3e6cdc49-f1c5-4ac6-9483-37622eed207a"), UUID("9f709688-326d-4834-8075-1a477d590af7"), 200, 1
+            ),
+            False,
+            "",
         ),
     ],
 )
@@ -256,20 +256,20 @@ def test_QueryResult():
     "users_str,transactions_str,want",
     [
         (
-                """user_id,is_active
+            """user_id,is_active
 9f709688-326d-4834-8075-1a477d590af7,1
 999eb541-c1a0-4888-aeb6-92773fc60e69,0
 b923d15c-ce6d-4b2f-913f-31e87ebbcdc2,false
 b1ee6da9-aca5-4bc6-bcfb-21ace2185055,true
 """,
-                """transaction_id,date,user_id,is_blocked,transaction_amount,transaction_category_id
+            """transaction_id,date,user_id,is_blocked,transaction_amount,transaction_category_id
 ce861100-26f0-4f1a-a8e3-8d6b3ad7a0e8,2022-01-01,9f709688-326d-4834-8075-1a477d590af7,1,100,1
 3e6cdc49-f1c5-4ac6-9483-37622eed207a,2022-01-01,9f709688-326d-4834-8075-1a477d590af7,0,200,1
 5c2e5c85-75e1-4137-bf13-529a000757f6,2022-02-01,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,true,100,1
 35715617-ea5d-4c00-842a-0aa81b224934,2022-02-02,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,false,200,1
 ca0d184e-7297-4ac2-95a6-6ed719a67b0a,2022-02-02,b1ee6da9-aca5-4bc6-bcfb-21ace2185055,false,20,2
 """,
-                """transaction_category_id,sum_amount,num_users
+            """transaction_category_id,sum_amount,num_users
 1,400,2
 2,20,1
 """,

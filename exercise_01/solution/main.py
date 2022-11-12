@@ -82,7 +82,7 @@ def read_active_users(reader: CSVReader) -> set[UUID]:
 
 class Transaction:
     def __init__(
-            self, transaction_id: UUID, user_id: UUID, transaction_amount: int, transaction_category_id: int
+        self, transaction_id: UUID, user_id: UUID, transaction_amount: int, transaction_category_id: int
     ) -> None:
         """Defines a transaction with relevant attributes.
 
@@ -105,10 +105,10 @@ class Transaction:
             return other is None
         if other is not None:
             return (
-                    self.transaction_amount == other.transaction_amount
-                    and self.transaction_category_id == other.transaction_category_id
-                    and self.user_id == other.user_id
-                    and self.transaction_id == other.transaction_id
+                self.transaction_amount == other.transaction_amount
+                and self.transaction_category_id == other.transaction_category_id
+                and self.user_id == other.user_id
+                and self.transaction_id == other.transaction_id
             )
         return False
 

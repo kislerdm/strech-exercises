@@ -29,9 +29,7 @@ from math import ceil
 from typing import Any
 
 
-def generate_transactions(users: dict[str, list[Any]]) -> dict[str, list[Any]]:
-    multiplication_factor = 100
-
+def generate_transactions(users: dict[str, list[Any]], multiplication_factor: int) -> dict[str, list[Any]]:
     num_users = len(users["data"])
     num_transactions = num_users * multiplication_factor
 
@@ -79,20 +77,24 @@ def write_data(out: str, header: list[str], data: list[list[Any]], append: bool 
 
 
 if __name__ == "__main__":
-    base_dir = os.getenv("BASE_DIR", "fixtures/test")
+    base_dir = os.getenv("BASE_DIR", "fixtures")
 
-    num_users: int = 1000
+    num_users: int = 10
     num_users_str = os.getenv("NUM_USERS", "1000")
 
     try:
-        num_users = int(num_users_str) if int(num_users_str) > 10 else num_users
+        num_users = int(num_users_str) if int(num_users_str) > 0 else num_users
     except ValueError:
         pass
 
     num_users_data_sink_limit: int = 5000
     num_steps: int = ceil(num_users / num_users_data_sink_limit)
+    multiplication_factor: int = 100
 
-    print("generate data for %d users over %d steps" % (num_users, num_steps))
+    print(
+        "generate %d transactions for %d users over %d steps"
+        % (num_users * multiplication_factor, num_users, num_steps)
+    )
 
     for step in range(num_steps):
         print("step %d" % step)
@@ -100,7 +102,7 @@ if __name__ == "__main__":
         num_users_step = num_users_data_sink_limit if num_users_data_sink_limit < num_users else num_users
 
         users = generate_users(num_users_step)
-        transactions = generate_transactions(users)
+        transactions = generate_transactions(users, multiplication_factor)
 
         write_data(f"{base_dir}/users.csv", users["header"], users["data"], step > 0)
         write_data(f"{base_dir}/transactions.csv", transactions["header"], transactions["data"], step > 0)
