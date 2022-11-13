@@ -61,11 +61,11 @@ Data quality assurance is performed according to the following test scenario.
 
 **GIVEN**
 
-- The inputs `users.csv` and `transactions.csv` generated using [the script](generate_data.py);
+- The inputs `users.csv` and `transactions.csv` generated using the [script](generate_data.py);
 
 **WHEN**
 
-- The logic application is executed end-to-end;
+- The logic is executed end-to-end;
 
 **THEN**
 
@@ -408,3 +408,12 @@ The resources consumption assessed using `docker stats`:
 
 - CPU: up to 50% of 0.5 CPU
 - RAM: up to 270Mb from <10Mb
+
+## Alternative
+
+As an alternative, the logic was [implemented in Go](alternative). The screenshot below illustrates a qualitative performance
+comparison between the Python and Go applications aggregating 100 mil. transactions for 1 mil. users. The image shows
+the result of a single execution.
+
+![py_vs_go.png](fig/py_vs_go_1M_users.png)
+The Go application (on the _right_) takes roughly 15 times less time to perform aggregations compared to the Python app. 
