@@ -1,3 +1,5 @@
+SHELL = /bin/sh
+
 .DEFAULT_GOAL := help
 
 help: ## Prints help message.
@@ -5,20 +7,22 @@ help: ## Prints help message.
 
 tests: setup .tests clean ## Runs the validation tests.
 
-setup: ## Setup required env dependencies.
+BASE := $(PWD)/.dev
+
+setup: ## Setup local env.
 	@ echo "Provision environment"
 	@ docker run --rm --name ex2generate \
 		-w /app \
-		-v $(PWD):/app \
-		-v $(PWD)/fixtures:/fixtures \
+		-v $(BASE):/app \
+		-v $(BASE)/fixtures:/fixtures \
 		-e BASE_DIR=/fixtures \
         -e NUM_USERS=10 \
         golang:1.19.3 \
         /bin/bash -c 'python3 generate_data.py && go run main.go'
 
-	@ docker build --label ex2 -t ex2 .
+	@ cd $(BASE) && docker build --label ex2 -t ex2 .
 	@ docker run -d --rm --name ex2 \
-		-v $(PWD)/fixtures:/fixtures \
+		-v $(BASE)/fixtures:/fixtures \
 		-e POSTGRES_USER=admin \
 		-e POSTGRES_PASSWORD=admin \
 		-e BASE_DIR=/fixtures \
@@ -27,13 +31,13 @@ setup: ## Setup required env dependencies.
 
 .tests:
 	@ echo "Run tests"
-	@ echo "CREATE TABLE IF NOT EXISTS got AS " > .tests.sql
-	@ cat solution.sql tests.sql >> .tests.sql
-	@ docker exec ex2 psql -U admin -c "$$(cat .tests.sql)"
+	@ echo "CREATE TABLE IF NOT EXISTS got AS " > $(BASE)/.tests.sql
+	@ cat solution.sql $(BASE)/tests.sql >> $(BASE)/.tests.sql
+	@ docker exec ex2 psql -U admin -c "$$(cat $(BASE)/.tests.sql)"
 
-clean: ## Stop docker containers.
+clean: ## Clean local env.
 	@ echo "Clean environment"
-	@ rm .tests.sql
-	@ rm -r fixtures
+	@ if [ -f $(BASE)/.tests.sql ]; then rm $(BASE)/.tests.sql; fi
+	@ if [ -d $(BASE)/fixtures ]; then rm -r $(BASE)/fixtures; fi
 	@ docker stop ex2 > /dev/null 2>&1
 	@ docker rmi ex2 > /dev/null 2>&1
