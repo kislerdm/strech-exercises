@@ -148,6 +148,12 @@ Run to perform application profiling on pre-generated data:
 make profiling
 ```
 
+Run to clean up the local environment:
+
+```commandline
+make clean
+```
+
 ### Product Questions
 
 - Does input's validation required?
