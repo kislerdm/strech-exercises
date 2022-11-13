@@ -9,10 +9,13 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/google/uuid"
 )
+
+const maxWorkers = 20
 
 func main() {
 	basePath := os.Getenv("BASE_DIR")
@@ -117,40 +120,170 @@ func isNaNUint32(f uint32) bool {
 
 type transactionAggregate struct {
 	SumAmount   uint32
-	uniqueUsers map[uuid.UUID]struct{}
+	uniqueUsers UniqueUsers
+}
+
+func (v transactionAggregate) NumberUniqueUsers() uint32 {
+	return uint32(len(v.uniqueUsers))
 }
 
 type joinInterim struct {
-	v  map[uint8]transactionAggregate
-	mu *sync.RWMutex
+	Data map[uint8]transactionAggregate
+	mu   *sync.RWMutex
+}
+
+func (v *joinInterim) Len() int {
+	return len((*v).Data)
 }
 
 func (v *joinInterim) AddTransaction(transactionCategoryID uint8, userID uuid.UUID, amount uint32) {
 	v.mu.RLock()
-	o, ok := v.v[transactionCategoryID]
-	if !ok {
-		v.mu.Lock()
-		v.v[transactionCategoryID] = transactionAggregate{
-			SumAmount:   amount,
-			uniqueUsers: UniqueUsers{userID: struct{}{}},
-		}
-		v.mu.Unlock()
-	}
+	o, ok := v.Data[transactionCategoryID]
 	v.mu.RUnlock()
 
 	v.mu.Lock()
-	o.uniqueUsers[userID] = struct{}{}
+
+	if !ok {
+		o = transactionAggregate{
+			SumAmount:   0,
+			uniqueUsers: UniqueUsers{},
+		}
+	}
+
 	o.SumAmount += amount
+	o.uniqueUsers[userID] = struct{}{}
+	v.Data[transactionCategoryID] = o
+
 	v.mu.Unlock()
 }
 
 // ReadNJoinNonBlockedTransactionsWithActiveUsers reads transactions.csv and filters blocked transactions out.
 // Every non blocked transaction is further filtered depending on the user status (join with active users).
 // JoinResult is grouped by the transaction category.
-func ReadNJoinNonBlockedTransactionsWithActiveUsers(in *os.File, activeUsers UniqueUsers) (
+func ReadNJoinNonBlockedTransactionsWithActiveUsers(f io.Reader, activeUsers UniqueUsers) (
 	JoinResult, error,
 ) {
-	panic("todo")
+	sc := bufio.NewScanner(f)
+	sc.Split(bufio.ScanLines)
+
+	var wg sync.WaitGroup
+	ch := make(chan int, maxWorkers)
+
+	joinBuf := joinInterim{
+		Data: map[uint8]transactionAggregate{},
+		mu:   &sync.RWMutex{},
+	}
+
+	rowCounter := 0
+	errs := map[int]error{}
+
+	for sc.Scan() {
+		if rowCounter == 0 {
+			rowCounter++
+			continue
+		}
+
+		wg.Add(1)
+		go func(v []byte) {
+			defer func() { wg.Done(); <-ch }()
+			// filter blocked transactions out
+			if byteArrayContainTrue(v[85:90]) {
+				return
+			}
+
+			userID, err := uuid.ParseBytes(v[48:84])
+			if err != nil {
+				errs[rowCounter] = errors.New("cannot parse user_id: " + err.Error())
+				return
+			}
+
+			// join condition
+			if _, ok := activeUsers[userID]; !ok {
+				return
+			}
+
+			// parse two last columns
+			var (
+				transactionCategoryID uint8
+				transactionAmount     uint32
+			)
+
+			i := len(v) - 1
+			r := len(v) - 1
+			parsed := 0
+			for parsed < 2 {
+				if v[i] == ',' {
+					if r == len(v)-1 {
+						v, err := strconv.ParseUint(string(v[i+1:]), 10, 8)
+						if err != nil {
+							errs[rowCounter] = errors.New("cannot parse transaction_category_id: " + err.Error())
+							return
+						}
+						transactionCategoryID = uint8(v)
+					} else {
+						v, err := strconv.ParseUint(string(v[i+1:r]), 10, 32)
+						if err != nil {
+							errs[rowCounter] = errors.New("cannot parse transaction_amount: " + err.Error())
+							return
+						}
+						transactionAmount = uint32(v)
+					}
+					r = i
+					parsed++
+				}
+				i--
+			}
+
+			// validation
+			_, err = uuid.ParseBytes(v[:36])
+			if err != nil {
+				errs[rowCounter] = errors.New("cannot parse transaction_id: " + err.Error())
+				return
+			}
+
+			_, err = time.Parse("2006-01-02", string(v[37:47]))
+			if err != nil {
+				errs[rowCounter] = errors.New("cannot parse date: " + err.Error())
+				return
+			}
+
+			joinBuf.AddTransaction(transactionCategoryID, userID, transactionAmount)
+
+		}(sc.Bytes())
+
+		rowCounter++
+
+	}
+
+	wg.Wait()
+
+	if len(errs) > 0 {
+		msg := "error reading rows:\n"
+		for rowID, e := range errs {
+			msg += "[" + strconv.Itoa(rowID) + "] " + e.Error() + "\n"
+		}
+		return JoinResult{}, errors.New(msg)
+	}
+
+	o := JoinResult{
+		CategoryID: make([]uint8, joinBuf.Len()),
+		NumUsers:   make(arrayUInt32, joinBuf.Len()),
+		SumAmount:  make(arrayUInt32, joinBuf.Len()),
+	}
+
+	i := 0
+	for categoryID, d := range joinBuf.Data {
+		o.CategoryID[i] = categoryID
+		o.NumUsers[i] = d.NumberUniqueUsers()
+		o.SumAmount[i] = d.SumAmount
+		i++
+	}
+
+	return o, nil
+}
+
+func byteArrayContainTrue(v []byte) bool {
+	return v[0] == 't' || v[0] == 'T' || v[0] == '1'
 }
 
 func mustParseUUIDBytes(v []byte) uuid.UUID {
@@ -169,7 +302,6 @@ func ReadActiveUsers(f io.Reader) (UniqueUsers, error) {
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
-	const maxWorkers = 10
 	var wg sync.WaitGroup
 	ch := make(chan int, maxWorkers)
 
@@ -188,14 +320,18 @@ func ReadActiveUsers(f io.Reader) (UniqueUsers, error) {
 		go func(v []byte) {
 			defer func() { wg.Done(); <-ch }()
 
-			if userID, err := uuid.ParseBytes(v[:36]); err == nil {
-				// filter not active users
-				if v[37] == 't' || v[37] == 'T' || v[37] == '1' {
-					o[userID] = struct{}{}
-				}
-			} else {
+			userID, err := uuid.ParseBytes(v[:36])
+			if err != nil {
 				errs[rowCounter] = err
+				return
 			}
+
+			// filter not active users
+			if !byteArrayContainTrue(v[37:40]) {
+				return
+			}
+
+			o[userID] = struct{}{}
 
 		}(sc.Bytes())
 

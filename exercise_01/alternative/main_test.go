@@ -90,7 +90,7 @@ func TestJoinResult_Output(t *testing.T) {
 				if !tt.wantErr(t, err, fmt.Sprintf("Output(%v)", writer)) {
 					return
 				}
-				assert.Equalf(t, tt.wantWriter, writer.String(), "Output(%v)", writer)
+				assert.Equalf(t, tt.wantWriter, writer.String(), "Output(%Data)", writer)
 			},
 		)
 	}
@@ -163,6 +163,62 @@ func TestJoinResult_Sort(t *testing.T) {
 					SumAmount:  tt.fields.SumAmount,
 				}
 				x.Sort(tt.args.desc)
+			},
+		)
+	}
+}
+
+func TestReadNJoinNonBlockedTransactionsWithActiveUsers(t *testing.T) {
+	type args struct {
+		in          io.Reader
+		activeUsers UniqueUsers
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    JoinResult
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "happy path",
+			args: args{
+				activeUsers: UniqueUsers{
+					mustParseUUIDBytes([]byte("ede06128-d6c3-4203-a28e-06adadc6d2db")): {},
+					mustParseUUIDBytes([]byte("d07f1e39-4b31-406a-a5b8-b7ae6be878d9")): {},
+				},
+				in: bytes.NewReader(
+					[]byte(`transaction_id,date,user_id,is_blocked,transaction_amount,transaction_category_id
+7035ce25-9e5d-488e-88e3-4d131dde2687,2022-10-16,ede06128-d6c3-4203-a28e-06adadc6d2db,True,7561,4
+c5add928-2cab-4b6e-a22b-d31254651909,2022-08-07,ede06128-d6c3-4203-a28e-06adadc6d2db,False,5148,7
+4580e86c-8e9c-43b8-b85f-754ee3364ad3,2022-10-18,d07f1e39-4b31-406a-a5b8-b7ae6be878d9,True,2664,9
+8ac6bd39-5567-4ea7-8fa4-713336877d32,2022-09-29,d07f1e39-4b31-406a-a5b8-b7ae6be878d9,True,1343,4
+dab6559a-1d91-4edb-9765-cbbd603a5b08,2022-08-29,d07f1e39-4b31-406a-a5b8-b7ae6be878d9,False,5654,3
+`),
+				),
+			},
+			want: JoinResult{
+				CategoryID: []uint8{7, 3},
+				NumUsers:   arrayUInt32{1, 1},
+				SumAmount:  arrayUInt32{5148, 5654},
+			},
+			wantErr: assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(
+			tt.name, func(t *testing.T) {
+				got, err := ReadNJoinNonBlockedTransactionsWithActiveUsers(tt.args.in, tt.args.activeUsers)
+				if !tt.wantErr(
+					t, err, fmt.Sprintf(
+						"ReadNJoinNonBlockedTransactionsWithActiveUsers(%v, %v)", tt.args.in, tt.args.activeUsers,
+					),
+				) {
+					return
+				}
+				assert.Equalf(
+					t, tt.want, got, "ReadNJoinNonBlockedTransactionsWithActiveUsers(%v, %v)", tt.args.in,
+					tt.args.activeUsers,
+				)
 			},
 		)
 	}
