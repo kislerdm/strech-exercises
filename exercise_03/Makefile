@@ -1,3 +1,5 @@
+SHELL = /bin/sh
+
 .DEFAULT_GOAL := help
 
 help: ## Prints help message.
@@ -5,9 +7,10 @@ help: ## Prints help message.
 
 tests: setup .tests clean ## Runs the validation tests.
 
-setup: ## Setup required env dependencies.
-	@ echo "Provision environment"
-	@ docker build --label ex3 -t ex3 .
+BASE := $(PWD)/.dev
+
+setup: ## Setup local env.	@ echo "Provision environment"
+	@ cd $(BASE) && docker build --label ex3 -t ex3 .
 	@ docker run --rm -d --name ex3 \
  		-e POSTGRES_USER=admin \
  		-e POSTGRES_PASSWORD=admin \
@@ -16,11 +19,9 @@ setup: ## Setup required env dependencies.
 
 .tests:
 	@ echo "Run tests"
-	@ cat solution.sql tests.sql > .tests.sql
-	@ docker exec ex3 psql -U admin -c "$$(cat .tests.sql)"
+	@ docker exec ex3 psql -U admin -c "$$(cat solution.sql $(BASE)/tests.sql)"
 
-clean: ## Stop docker containers.
+clean: ## Clean local env.
 	@ echo "Clean environment"
-	@ rm .tests.sql
 	@ docker rm -f ex3 > /dev/null 2>&1
 	@ docker rmi ex3 > /dev/null 2>&1
