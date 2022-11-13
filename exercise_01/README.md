@@ -131,7 +131,7 @@ make run
 
 **Note**: the application uses the csv files generated during the setup step.
 
-Run the following command options to use custom `users.csv` and `transactions.csv` files as the input data:
+Run the following command to use _custom_ `users.csv` and `transactions.csv` files as the input data:
 
 ```commandline
 make run BASE_DIR=##path/to/users/and/transactions/csv##
