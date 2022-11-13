@@ -96,3 +96,75 @@ func TestJoinResult_Output(t *testing.T) {
 		)
 	}
 }
+
+func TestJoinResult_Sort(t *testing.T) {
+	type fields struct {
+		CategoryID []uint8
+		NumUsers   arrayUInt32
+		SumAmount  arrayUInt32
+	}
+	type args struct {
+		desc bool
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   JoinResult
+	}{
+		{
+			name: "3 elements, desc",
+			fields: fields{
+				CategoryID: []uint8{0, 1, 2},
+				NumUsers:   arrayUInt32{2, 1, 4},
+				SumAmount:  arrayUInt32{10, 30, 20},
+			},
+			args: args{true},
+			want: JoinResult{
+				CategoryID: []uint8{1, 2, 0},
+				NumUsers:   arrayUInt32{1, 4, 2},
+				SumAmount:  arrayUInt32{30, 20, 10},
+			},
+		},
+		{
+			name: "3 elements, asc",
+			fields: fields{
+				CategoryID: []uint8{0, 1, 2},
+				NumUsers:   arrayUInt32{2, 1, 4},
+				SumAmount:  arrayUInt32{10, 30, 20},
+			},
+			args: args{false},
+			want: JoinResult{
+				CategoryID: []uint8{0, 2, 1},
+				NumUsers:   arrayUInt32{2, 4, 1},
+				SumAmount:  arrayUInt32{10, 20, 30},
+			},
+		},
+		{
+			name: "4 elements, desc, two have the same amount",
+			fields: fields{
+				CategoryID: []uint8{0, 3, 2, 1},
+				NumUsers:   arrayUInt32{2, 1, 4, 3},
+				SumAmount:  arrayUInt32{10, 30, 20, 30},
+			},
+			args: args{true},
+			want: JoinResult{
+				CategoryID: []uint8{3, 1, 2, 0},
+				NumUsers:   arrayUInt32{1, 3, 4, 2},
+				SumAmount:  arrayUInt32{30, 30, 20, 10},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(
+			tt.name, func(t *testing.T) {
+				x := JoinResult{
+					CategoryID: tt.fields.CategoryID,
+					NumUsers:   tt.fields.NumUsers,
+					SumAmount:  tt.fields.SumAmount,
+				}
+				x.Sort(tt.args.desc)
+			},
+		)
+	}
+}

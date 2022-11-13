@@ -47,22 +47,40 @@ func main() {
 
 	joinResult, err := ReadNJoinNonBlockedTransactionsWithActiveUsers(fIn, activeUsers)
 
-	joinResult.SortByTransactionAmount(true)
+	joinResult.Sort(true)
 
 	if err := joinResult.Output(os.Stdout); err != nil {
 		log.Fatalln(err)
 	}
 }
 
+// JoinResult results stored pre-sorted in desc order.
 type JoinResult struct {
 	CategoryID []uint8
 	NumUsers   arrayUInt32
 	SumAmount  arrayUInt32
 }
 
-// SortByTransactionAmount sorts by transaction_amount.
-func (v *JoinResult) SortByTransactionAmount(desc bool) {
-	v.SumAmount.Sort(desc)
+func (x JoinResult) Len() int {
+	return len(x.CategoryID)
+}
+
+func (x JoinResult) Less(i, j int) bool {
+	return x.SumAmount[i] < x.SumAmount[j] || (isNaNUint32(x.SumAmount[i]) && !isNaNUint32(x.SumAmount[j]))
+}
+
+func (x JoinResult) Swap(i, j int) {
+	x.CategoryID[i], x.CategoryID[j] = x.CategoryID[j], x.CategoryID[i]
+	x.NumUsers[i], x.NumUsers[j] = x.NumUsers[j], x.NumUsers[i]
+	x.SumAmount[i], x.SumAmount[j] = x.SumAmount[j], x.SumAmount[i]
+}
+
+func (x JoinResult) Sort(desc bool) {
+	if desc {
+		sort.Sort(sort.Reverse(x))
+	} else {
+		sort.Sort(x)
+	}
 }
 
 // Output outputs the result.
@@ -90,24 +108,8 @@ func (v *JoinResult) Output(writer io.Writer) error {
 
 type arrayUInt32 []uint32
 
-func (x arrayUInt32) Len() int {
-	return len(x)
-}
-
-func isNaN(f uint32) bool {
+func isNaNUint32(f uint32) bool {
 	return f != f
-}
-
-func (x arrayUInt32) Less(i, j int) bool { return x[i] < x[j] || (isNaN(x[i]) && !isNaN(x[j])) }
-
-func (x arrayUInt32) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
-
-func (x arrayUInt32) Sort(desc bool) {
-	if desc {
-		sort.Sort(sort.Reverse(x))
-	} else {
-		sort.Sort(x)
-	}
 }
 
 type transactionAggregate struct {
