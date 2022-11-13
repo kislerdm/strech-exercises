@@ -15,8 +15,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const maxWorkers = 20
-
 func main() {
 	basePath := os.Getenv("BASE_DIR")
 	if basePath == "" {

@@ -131,12 +131,9 @@ _To run the application_, execute the following command:
 make run
 ```
 
-**Note**: the application uses the csv files generated at the setup step.
+**Note**: the application uses the csv files generated during the setup step.
 
-Consider the following options to use custom `users.csv` and `transactions.csv` files as the input data:
-
-- move the files to `./fixture/tests` directory and run the application;
-- place the csv files in a single directory and execute the command:
+Run the following command options to use custom `users.csv` and `transactions.csv` files as the input data:
 
 ```commandline
 make run BASE_DIR=##path/to/users/and/transactions/csv##
@@ -286,14 +283,17 @@ The benchmarking was performed on the data generated using the [script](generate
 - users.csv with 1 Million rows
 - transactions.csv with 100 Million rows
 
-| Logic                   | Elapsed Time [sec.] | RAM uplift [Mb] | CPU max [% of .5 unit] |
-|:------------------------|--------------------:|----------------:|-----------------------:|
-| [Reference](#reference) |              70.184 |            ~ 50 |                   < 60 |
-| [Solution](solution)    |             434.595 |           ~ 250 |                   < 60 |
+| Logic                      | Elapsed Time [sec.] | RAM uplift [Mb] | CPU max [% of .5 unit] |
+|:---------------------------|--------------------:|----------------:|-----------------------:|
+| [Reference](#reference)    |              70.184 |            ~ 50 |                   < 60 |
+| [Solution](solution)       |             434.595 |           ~ 250 |                   < 60 |
+| ["Alternative"](alternative) |             408.809 |           ~ 130 |                   < 30 |
 
 **Note**: the benchmark is based on a single run on a MacBook Pro with Apple M1 Pro and 16Gb of RAM. It shall only be
 considered as a qualitative illustration rather than quantitative thorough comparison taking statical significance into
 account.
+
+**Note**: The "alternative" term labels the logic [implemented in Go](alternative).
 
 ### Reference
 
@@ -388,7 +388,7 @@ The resources consumption assessed using `docker stats`:
 ## Solution
 
 ```commandline
-make run BASE_DIR=${PWD}/fixtures/benchmark
+╰─ make run BASE_DIR=${PWD}/benchmark
 2022-11-06T22:07:55.006 [INFO] elapsed time: 434.595 sec.
 transaction_category_id,sum_amount,num_users
 5,411126340,78431
@@ -411,9 +411,34 @@ The resources consumption assessed using `docker stats`:
 
 ## Alternative
 
-As an alternative, the logic was [implemented in Go](alternative). The screenshot below illustrates a qualitative performance
-comparison between the Python and Go applications aggregating 100 mil. transactions for 1 mil. users. The image shows
-the result of a single execution.
+```commandline
+╰─ make go.run BASE_DIR=${PWD}/benchmark
+transaction_category_id,sum_amount,num_users
+5,411126340,78431
+8,410552270,78442
+9,410413764,78567
+0,410069189,78288
+3,409259459,78225
+6,408855294,78056
+10,408843738,78339
+2,408564886,78055
+7,408210562,77881
+4,407689371,77753
+1,407210378,77939
+2022/11/13 21:41:16 elapsed time: 408809199 microseconds
+```
+
+The resources consumption assessed using `docker stats`:
+
+- CPU: up to 25% of 0.5 CPU
+- RAM: up to 130Mb from <10Mb
+
+## Alternative
+
+The screenshot below illustrates a qualitative performance comparison between the Python and Go applications aggregating
+100 mil. transactions for 1 mil. users. The image shows the result of a single execution on a MacBook Pro with Apple
+M1 Pro and 16Gb of RAM without locking the process and limiting the resource quota.
 
 ![py_vs_go.png](fig/py_vs_go_1M_users.png)
+
 The Go application (on the _right_) takes roughly 15 times less time to perform aggregations compared to the Python app. 
