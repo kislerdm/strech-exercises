@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"log"
@@ -75,6 +76,8 @@ func (x JoinResult) Swap(i, j int) {
 	x.SumAmount[i], x.SumAmount[j] = x.SumAmount[j], x.SumAmount[i]
 }
 
+// Sort sorts by the total amount.
+// It uses the default Go sort which is based on pdqsort, see the paper: https://arxiv.org/pdf/2106.05123.pdf.
 func (x JoinResult) Sort(desc bool) {
 	if desc {
 		sort.Sort(sort.Reverse(x))
@@ -162,9 +165,51 @@ func mustParseUUIDBytes(v []byte) uuid.UUID {
 type UniqueUsers map[uuid.UUID]struct{}
 
 // ReadActiveUsers reads users.csv and filters not active UniqueUsers out.
-func ReadActiveUsers(f io.ReaderAt) (UniqueUsers, error) {
-	panic("todo")
-	//const maxWorkers = 10
-	//buf := make([]byte, 40)
-	//f.ReadAt(buf, 0)
+func ReadActiveUsers(f io.Reader) (UniqueUsers, error) {
+	sc := bufio.NewScanner(f)
+	sc.Split(bufio.ScanLines)
+
+	const maxWorkers = 10
+	var wg sync.WaitGroup
+	ch := make(chan int, maxWorkers)
+
+	o := UniqueUsers{}
+
+	rowCounter := 0
+	errs := map[int]error{}
+
+	for sc.Scan() {
+		if rowCounter == 0 {
+			rowCounter++
+			continue
+		}
+
+		wg.Add(1)
+		go func(v []byte) {
+			defer func() { wg.Done(); <-ch }()
+
+			if userID, err := uuid.ParseBytes(v[:36]); err == nil {
+				// filter not active users
+				if v[37] == 't' || v[37] == 'T' || v[37] == '1' {
+					o[userID] = struct{}{}
+				}
+			} else {
+				errs[rowCounter] = err
+			}
+
+		}(sc.Bytes())
+
+		rowCounter++
+	}
+	wg.Wait()
+
+	if len(errs) > 0 {
+		msg := "error reading rows:\n"
+		for rowID, e := range errs {
+			msg += "[" + strconv.Itoa(rowID) + "] " + e.Error() + "\n"
+		}
+		return nil, errors.New(msg)
+	}
+
+	return o, nil
 }

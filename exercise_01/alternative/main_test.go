@@ -11,14 +11,14 @@ import (
 
 func Test_readUsers(t *testing.T) {
 	type args struct {
-		f io.ReaderAt
+		f io.Reader
 	}
 
 	tests := []struct {
 		name    string
 		args    args
 		want    UniqueUsers
-		wantErr bool
+		wantErr assert.ErrorAssertionFunc
 	}{
 		{
 			name: "happy path, 2 active out of 3 uniqueUsers",
@@ -35,15 +35,14 @@ c27ce481-69d7-4f54-9ffb-73c8f582d5a0,False
 				mustParseUUIDBytes([]byte("ede06128-d6c3-4203-a28e-06adadc6d2db")): {},
 				mustParseUUIDBytes([]byte("d07f1e39-4b31-406a-a5b8-b7ae6be878d9")): {},
 			},
-			wantErr: false,
+			wantErr: assert.NoError,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
 				got, err := ReadActiveUsers(tt.args.f)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("ReadActiveUsers() error = %v, wantErr %v", err, tt.wantErr)
+				if !tt.wantErr(t, err, fmt.Sprintf("ReadActiveUsers(%v)", tt.args.f)) {
 					return
 				}
 				assert.Equal(t, tt.want, got, "ReadActiveUsers() error")
