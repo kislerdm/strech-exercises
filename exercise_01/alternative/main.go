@@ -27,7 +27,8 @@ func main() {
 		basePath = basePath[:len(basePath)-1]
 	}
 
-	fIn, err := os.Open(basePath + "/uniqueUsers.csv")
+	t0 := time.Now()
+	fIn, err := os.Open(basePath + "/users.csv")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -56,6 +57,7 @@ func main() {
 	if err := joinResult.Output(os.Stdout); err != nil {
 		log.Fatalln(err)
 	}
+	log.Printf("elapsed time: %d microseconds\n", time.Now().Sub(t0).Microseconds())
 }
 
 // JoinResult results stored pre-sorted in desc order.
@@ -166,103 +168,81 @@ func ReadNJoinNonBlockedTransactionsWithActiveUsers(f io.Reader, activeUsers Uni
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
-	var wg sync.WaitGroup
-	ch := make(chan int, maxWorkers)
-
 	joinBuf := joinInterim{
 		Data: map[uint8]transactionAggregate{},
 		mu:   &sync.RWMutex{},
 	}
 
 	rowCounter := 0
-	errs := map[int]error{}
-
 	for sc.Scan() {
 		if rowCounter == 0 {
 			rowCounter++
 			continue
 		}
 
-		wg.Add(1)
-		go func(v []byte) {
-			defer func() { wg.Done(); <-ch }()
-			// filter blocked transactions out
-			if byteArrayContainTrue(v[85:90]) {
-				return
-			}
+		v := sc.Bytes()
 
-			userID, err := uuid.ParseBytes(v[48:84])
-			if err != nil {
-				errs[rowCounter] = errors.New("cannot parse user_id: " + err.Error())
-				return
-			}
+		// filter blocked transactions out
+		if byteArrayContainTrue(v[85:90]) {
+			continue
+		}
 
-			// join condition
-			if _, ok := activeUsers[userID]; !ok {
-				return
-			}
+		userID, err := uuid.ParseBytes(v[48:84])
+		if err != nil {
+			return JoinResult{}, errors.New("cannot parse user_id: " + err.Error())
 
-			// parse two last columns
-			var (
-				transactionCategoryID uint8
-				transactionAmount     uint32
-			)
+		}
 
-			i := len(v) - 1
-			r := len(v) - 1
-			parsed := 0
-			for parsed < 2 {
-				if v[i] == ',' {
-					if r == len(v)-1 {
-						v, err := strconv.ParseUint(string(v[i+1:]), 10, 8)
-						if err != nil {
-							errs[rowCounter] = errors.New("cannot parse transaction_category_id: " + err.Error())
-							return
-						}
-						transactionCategoryID = uint8(v)
-					} else {
-						v, err := strconv.ParseUint(string(v[i+1:r]), 10, 32)
-						if err != nil {
-							errs[rowCounter] = errors.New("cannot parse transaction_amount: " + err.Error())
-							return
-						}
-						transactionAmount = uint32(v)
+		// join condition
+		if _, ok := activeUsers[userID]; !ok {
+			continue
+		}
+
+		// parse two last columns
+		var (
+			transactionCategoryID uint8
+			transactionAmount     uint32
+		)
+
+		i := len(v) - 1
+		r := len(v) - 1
+		parsed := 0
+		for parsed < 2 {
+			if v[i] == ',' {
+				if r == len(v)-1 {
+					v, err := strconv.ParseUint(string(v[i+1:]), 10, 8)
+					if err != nil {
+						return JoinResult{}, errors.New("cannot parse transaction_category_id: " + err.Error())
 					}
-					r = i
-					parsed++
+					transactionCategoryID = uint8(v)
+				} else {
+					v, err := strconv.ParseUint(string(v[i+1:r]), 10, 32)
+					if err != nil {
+						return JoinResult{}, errors.New("cannot parse transaction_amount: " + err.Error())
+					}
+					transactionAmount = uint32(v)
 				}
-				i--
+				r = i
+				parsed++
 			}
+			i--
+		}
 
-			// validation
-			_, err = uuid.ParseBytes(v[:36])
-			if err != nil {
-				errs[rowCounter] = errors.New("cannot parse transaction_id: " + err.Error())
-				return
-			}
+		// validation
+		_, err = uuid.ParseBytes(v[:36])
+		if err != nil {
+			return JoinResult{}, errors.New("cannot parse transaction_id: " + err.Error())
+		}
 
-			_, err = time.Parse("2006-01-02", string(v[37:47]))
-			if err != nil {
-				errs[rowCounter] = errors.New("cannot parse date: " + err.Error())
-				return
-			}
+		_, err = time.Parse("2006-01-02", string(v[37:47]))
+		if err != nil {
+			return JoinResult{}, errors.New("cannot parse date: " + err.Error())
+		}
 
-			joinBuf.AddTransaction(transactionCategoryID, userID, transactionAmount)
-
-		}(sc.Bytes())
+		joinBuf.AddTransaction(transactionCategoryID, userID, transactionAmount)
 
 		rowCounter++
 
-	}
-
-	wg.Wait()
-
-	if len(errs) > 0 {
-		msg := "error reading rows:\n"
-		for rowID, e := range errs {
-			msg += "[" + strconv.Itoa(rowID) + "] " + e.Error() + "\n"
-		}
-		return JoinResult{}, errors.New(msg)
 	}
 
 	o := JoinResult{
@@ -302,49 +282,26 @@ func ReadActiveUsers(f io.Reader) (UniqueUsers, error) {
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
-	var wg sync.WaitGroup
-	ch := make(chan int, maxWorkers)
-
 	o := UniqueUsers{}
 
 	rowCounter := 0
-	errs := map[int]error{}
-
 	for sc.Scan() {
 		if rowCounter == 0 {
 			rowCounter++
 			continue
 		}
 
-		wg.Add(1)
-		go func(v []byte) {
-			defer func() { wg.Done(); <-ch }()
-
-			userID, err := uuid.ParseBytes(v[:36])
-			if err != nil {
-				errs[rowCounter] = err
-				return
-			}
-
-			// filter not active users
-			if !byteArrayContainTrue(v[37:40]) {
-				return
-			}
-
-			o[userID] = struct{}{}
-
-		}(sc.Bytes())
-
-		rowCounter++
-	}
-	wg.Wait()
-
-	if len(errs) > 0 {
-		msg := "error reading rows:\n"
-		for rowID, e := range errs {
-			msg += "[" + strconv.Itoa(rowID) + "] " + e.Error() + "\n"
+		userID, err := uuid.ParseBytes(sc.Bytes()[:36])
+		if err != nil {
+			return nil, errors.New("[" + strconv.Itoa(rowCounter) + "] " + err.Error())
 		}
-		return nil, errors.New(msg)
+
+		// filter not active users
+		if !byteArrayContainTrue(sc.Bytes()[37:40]) {
+			continue
+		}
+		o[userID] = struct{}{}
+
 	}
 
 	return o, nil

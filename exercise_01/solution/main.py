@@ -315,7 +315,7 @@ if __name__ == "__main__":
     try:
         t0 = time.time()
         results = main(path_users_csv, path_transactions_csv, True)
-        logs.info("elapsed time: %.3f sec." % (time.time() - t0))
+        logs.info("elapsed time: %.0f microseconds" % ((time.time() - t0)*1_000_000))
         logging.shutdown()
 
         print(results)
