@@ -274,7 +274,7 @@ Out[8]: 32
 
 **The whole set of active users identifiers has to be stored in memory. What if it does not fit?**
 
-It is the problem for large datasets which could be typically resolve either by vertical, or horizontal scaling of
+It is the problem for large datasets which could be typically resolved either by vertical, or horizontal scaling of
 the computation unit.
 
 Vertical scaling is the straightforward approach: increase the amount of memory, so it fits the amount of data.
