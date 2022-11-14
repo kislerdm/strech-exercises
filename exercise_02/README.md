@@ -1,5 +1,16 @@
 # ML Feature Table Computation
 
+<!-- TOC -->
+* [Problem](#problem)
+* [Proposed Solution](#proposed-solution)
+* [Acceptance Criteria](#acceptance-criteria)
+* [Solution](#solution)
+  * [Tests](#tests)
+* [The Execution Process](#the-execution-process)
+  * [Execution Plan for Solution Query](#execution-plan-for-solution-query)
+    * [Reference Query](#reference-query)
+<!-- TOC -->
+
 ## Problem
 
 As a data scientist, I want timeseries data with the total number of transactions a user made in the last 7 days from a
@@ -61,7 +72,7 @@ Run tests by executing the command:
 make tests
 ```
 
-## The Query Execution Process
+## The Execution Process
 
 Although query execution details depend on the type and version of database engine, all relational databases operate in
 the request-response communication model:
@@ -129,6 +140,12 @@ below when a _client_ attempts to execute a query.
 7. The execution results are serialised and sent back to the client. Note that the results can reside in a caching layer
    in case of async execution. The query execution status is being updated in such case, thus the client would be able
    to make a call to retrieve the results using the query execution ID.
+
+_References_:
+
+- [SQL AST](http://ns.inria.fr/ast/sql/index.html)
+- [Postgres Documentation](https://www.postgresql.org/)
+- [Postgres Codebase](https://github.com/postgres/postgres)
 
 ### Execution Plan for Solution Query
 
@@ -214,9 +231,3 @@ GroupAggregate  (cost=421742.90..436832.25 rows=100000 width=44) (actual time=34
 Planning time: 0.441 ms
 Execution time: 4545.436 ms
 ```
-
-## References
-
-- [SQL AST](http://ns.inria.fr/ast/sql/index.html)
-- [Postgres Documentation](https://www.postgresql.org/)
-- [Postgres Codebase](https://github.com/postgres/postgres)
