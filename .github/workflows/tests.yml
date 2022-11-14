@@ -49,8 +49,13 @@ jobs:
           prerelease: true
           title: "Release"
           files: |
-            README.md
+            **/README.md
             LICENSE
-            solution_01/**
-            solution_02/**
-            solution_03/**
+            **/*.py
+            **/*.go
+            **/*.mod
+            **/*.sum
+            **/*.sql
+            **/*.sh
+            **/Makefile
+            **/Dockerfile*
