@@ -97,7 +97,7 @@ Data quality assurance is performed according to the following test scenario.
 Linting applied:
 
 - black
-- flak8
+- flake8
 - mypy
 - isort
 
