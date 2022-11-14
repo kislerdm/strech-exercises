@@ -15,10 +15,11 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         suffix:
-#          - '01'
-#          - '02'
+          - '01'
+          - '02'
           - '03'
     steps:
       - id: 'checkout'
