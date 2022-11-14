@@ -12,24 +12,22 @@ on:
   workflow_dispatch:
 
 jobs:
-#  tests:
-#    runs-on: ubuntu-latest
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        suffix:
-##          - '01'
-#          - '02'
-##          - '03'
-#    steps:
-#      - id: 'checkout'
-#        name: 'Checkout'
-#        uses: 'actions/checkout@v3'
-#        with:
-#          fetch-depth: '1'
-#      - id: 'test'
-#        name: 'Test'
-#        run: cd exercise_${{ matrix.suffix }} && make tests.ci
+  markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - id: 'checkout'
+        name: 'Checkout'
+        uses: 'actions/checkout@v3'
+        with:
+          fetch-depth: '1'
+
+      - id: 'markdown'
+        name: 'Markdown Generation'
+        uses: baileyjm02/markdown-to-pdf@v1
+        with:
+          input_dir: exercise_01
+          output_dir: exercise_01
+          build_html: false
 
   release:
     runs-on: ubuntu-latest
@@ -49,13 +47,5 @@ jobs:
           prerelease: true
           title: "Release"
           files: |
-            **/README.md
+            README.md
             LICENSE
-            **/*.py
-            **/*.go
-            **/*.mod
-            **/*.sum
-            **/*.sql
-            **/*.sh
-            **/Makefile
-            **/Dockerfile*
