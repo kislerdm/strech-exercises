@@ -17,8 +17,8 @@ jobs:
     strategy:
       matrix:
         suffix:
-          - '01'
-          - '02'
+#          - '01'
+#          - '02'
           - '03'
     steps:
       - id: 'checkout'
@@ -27,5 +27,5 @@ jobs:
         with:
           fetch-depth: '1'
       - id: 'test'
-        name: 'test'
+        name: 'Test'
         run: cd exercise_${{ matrix.suffix }} && make tests.ci
