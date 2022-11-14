@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "master"
-      - "v*"
 
 jobs:
   release:
@@ -27,7 +26,7 @@ jobs:
         uses: baileyjm02/markdown-to-pdf@v1
         with:
           input_dir: .md
-          output_dir: .
+          output_dir: .md
           build_html: false
 
       - id: 'release'
@@ -41,4 +40,4 @@ jobs:
           files: |
             README.md
             LICENSE
-            exercise*.pdf
+            .md/exercise*.pdf
