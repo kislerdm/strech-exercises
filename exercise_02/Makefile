@@ -41,3 +41,5 @@ clean: ## Clean local env.
 	@ if [ -d $(BASE)/fixtures ]; then rm -r $(BASE)/fixtures; fi
 	@ docker stop ex2 > /dev/null 2>&1
 	@ docker rmi ex2 > /dev/null 2>&1
+
+tests.ci: tests

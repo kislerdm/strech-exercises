@@ -25,3 +25,5 @@ clean: ## Clean local env.
 	@ echo "Clean environment"
 	@ docker rm -f ex3 > /dev/null 2>&1
 	@ docker rmi ex3 > /dev/null 2>&1
+
+tests.ci: tests

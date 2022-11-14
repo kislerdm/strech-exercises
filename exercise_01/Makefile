@@ -89,3 +89,5 @@ go.run:
 		-v $(BASE_DIR):/fixtures \
 		-e BASE_DIR=/fixtures \
 		golang:1.19.3 ./goapp
+
+tests.ci: setup linting tests clean
