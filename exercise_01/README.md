@@ -82,7 +82,7 @@ Data quality assurance is performed according to the following test scenario.
 
 **GIVEN**
 
-- The inputs `users.csv` and `transactions.csv` generated using the [script](generate_data.py);
+- The inputs `users.csv` and `transactions.csv` generated using the [script](.dev/generate_data.py);
 
 **WHEN**
 
@@ -263,7 +263,7 @@ Out[8]: 32
       time-complexity gain.
       <br>_Hypothesis_: the standard `sort` would be as efficient as it is feasibly possible because the data
       cardinality, or the number of sorted array's elements does not exceed a dozen. The hypothesis is based on personal
-      user experience, provided fixtures generation [script](generate_data.py)
+      user experience, provided fixtures generation [script](.dev/generate_data.py)
       and [the article](https://realpython.com/sorting-algorithms-python/) illustrating different
       sorting algorithms implementation in python.
 
@@ -296,7 +296,7 @@ node" could be raised.
 
 The section touches upon the logic performance.
 
-The benchmarking was performed on the data generated using the [script](generate_data.py):
+The benchmarking was performed on the data generated using the [script](.dev/generate_data.py):
 
 - users.csv with 1 Million rows
 - transactions.csv with 100 Million rows
