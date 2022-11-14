@@ -37,7 +37,7 @@ SELECT t.transaction_category_id,
        SUM(t.transaction_amount) AS sum_amount,
        COUNT(DISTINCT t.user_id) AS num_users
 FROM transactions t
-         JOIN users u USING (user_id)
+JOIN users u USING (user_id)
 WHERE t.is_blocked = False
   AND u.is_active = 1
 GROUP BY t.transaction_category_id
@@ -149,6 +149,41 @@ Run to clean up the local environment:
 make clean
 ```
 
+### The Logic - Execution Path
+
+1. Store the ID of _active_ users in memory as a [`Set`](https://docs.python.org/3.9/tutorial/datastructures.html#sets):
+    - Benefits:
+        - Minimisation of memory allocation:
+            - Only the smaller dataset is stored in memory in full;
+            - Only unique users are stored in memory.
+    - Requirements:
+        - `WHERE` clause condition to be applied in-flight: filtering for `is_active` when reading the file
+          line-by-line.
+        - The array of `user_id` is fully stored in memory to realise the join condition.
+2. Extract _relevant_ attributes of non-blocked transactions done by _active_ users:
+    - Benefits:
+        - Minimisation of memory allocation
+    - Requirements:
+        - `WHERE` clause condition to be applied in-flight: filtering for `is_blocked` when reading the file
+          line-by-line.
+        - `JOIN` clause condition to be applied in-flight: filtering for `user_id` to be in the set from the step 1.
+        - Select `transaction_category_id`, and `transaction_amount` only to deliver required data.
+3. Store the map of `transaction_category_id` to cumulative `transaction_amount` and array of _unique_ `user_id` in
+   memory as a [`Dict`](https://docs.python.org/3.9/tutorial/datastructures.html#dictionaries).
+    - Benefits:
+        - Minimisation of memory allocation for `transaction_amount`.
+        - Minimisation of memory allocation by preserving unique `user_id` only.
+    - Requirements:
+        - The equivalent of the [query](#query) operation `SUM(t.transaction_amount)` to be applied on the fly.
+        - Uniqueness of `user_id` associated with a given category is guaranteed by design of
+          the [`Set`](https://docs.python.org/3.9/tutorial/datastructures.html#sets) data type.
+    - Limitations:
+        - Array of `user_id` would have to be preserved to keep state of users mapped to a given transaction category to
+          execute the equivalent of the [query](#query) operation `COUNT(DISTINCT user_id)`.
+4. Calculate the number of unique active users associated with the transaction category.
+5. Sort by the total transaction amount.
+6. Output.
+
 ### Product Questions
 
 - Does input's validation required?
@@ -214,41 +249,6 @@ Out[8]: 32
 - When reading file, is [`csv` library](https://docs.python.org/3.9/library/csv.html) more efficient than line-by-line
   reading with `open`?
 
-### Execution path
-
-1. Store the ID of _active_ users in memory as a [`Set`](https://docs.python.org/3.9/tutorial/datastructures.html#sets):
-    - Benefits:
-        - Minimisation of memory allocation:
-            - Only the smaller dataset is stored in memory in full;
-            - Only unique users are stored in memory.
-    - Requirements:
-        - `WHERE` clause condition to be applied in-flight: filtering for `is_active` when reading the file
-          line-by-line.
-        - The array of `user_id` is fully stored in memory to realise the join condition.
-2. Extract _relevant_ attributes of non-blocked transactions done by _active_ users:
-    - Benefits:
-        - Minimisation of memory allocation
-    - Requirements:
-        - `WHERE` clause condition to be applied in-flight: filtering for `is_blocked` when reading the file
-          line-by-line.
-        - `JOIN` clause condition to be applied in-flight: filtering for `user_id` to be in the set from the step 1.
-        - Select `transaction_category_id`, and `transaction_amount` only to deliver required data.
-3. Store the map of `transaction_category_id` to cumulative `transaction_amount` and array of _unique_ `user_id` in
-   memory as a [`Dict`](https://docs.python.org/3.9/tutorial/datastructures.html#dictionaries).
-    - Benefits:
-        - Minimisation of memory allocation for `transaction_amount`.
-        - Minimisation of memory allocation by preserving unique `user_id` only.
-    - Requirements:
-        - The equivalent of the [query](#query) operation `SUM(t.transaction_amount)` to be applied on the fly.
-        - Uniqueness of `user_id` associated with a given category is guaranteed by design of
-          the [`Set`](https://docs.python.org/3.9/tutorial/datastructures.html#sets) data type.
-    - Limitations:
-        - Array of `user_id` would have to be preserved to keep state of users mapped to a given transaction category to
-          execute the equivalent of the [query](#query) operation `COUNT(DISTINCT user_id)`.
-4. Calculate the number of unique active users associated with the transaction category.
-5. Sort by the total transaction amount.
-6. Output.
-
 ## Solution Limitations
 
 **The whole set of active users identifiers has to be stored in memory. What if it does not fit?**
@@ -269,8 +269,7 @@ Horizontal scaling is achieved by parallel execution of computations following t
 
 Apart from networking and orchestration overhead, the _reduce_ operation could hit the resource bottleneck in line with
 the initial question. In such case, the "map-reduce" process could be repeated, or the resources quota for the "reduce
-node"
-could be raised.
+node" could be raised.
 
 ## Performance Analysis
 
@@ -281,17 +280,41 @@ The benchmarking was performed on the data generated using the [script](generate
 - users.csv with 1 Million rows
 - transactions.csv with 100 Million rows
 
-| Logic                      | Elapsed Time [sec.] | RAM uplift [Mb] | CPU max [% of .5 unit] |
-|:---------------------------|--------------------:|----------------:|-----------------------:|
-| [Reference](#reference)    |              70.184 |            ~ 50 |                   < 60 |
-| [Solution](solution)       |             434.595 |           ~ 250 |                   < 60 |
+| Logic                        | Elapsed Time [sec.] | RAM uplift [Mb] | CPU max [% of .5 unit] |
+|:-----------------------------|--------------------:|----------------:|-----------------------:|
+| [Reference](#reference)      |              70.184 |            ~ 50 |                   < 60 |
+| [Solution](solution)         |             434.595 |           ~ 250 |                   < 60 |
 | ["Alternative"](alternative) |             408.809 |           ~ 130 |                   < 30 |
 
 **Note**: the benchmark is based on a single run on a MacBook Pro with Apple M1 Pro and 16Gb of RAM. It shall only be
 considered as a qualitative illustration rather than quantitative thorough comparison taking statical significance into
 account.
 
-**Note**: The "alternative" term labels the logic [implemented in Go](alternative).
+**Note**: The "alternative" label corresponds to the logic [implemented in Go](alternative).
+
+### Solution
+
+```commandline
+╰─ make run BASE_DIR=${PWD}/benchmark
+2022-11-06T22:07:55.006 [INFO] elapsed time: 434.595 sec.
+transaction_category_id,sum_amount,num_users
+5,411126340,78431
+8,410552270,78442
+9,410413764,78567
+0,410069189,78288
+3,409259459,78225
+6,408855294,78056
+10,408843738,78339
+2,408564886,78055
+7,408210562,77881
+4,407689371,77753
+1,407210378,77939
+```
+
+The resources consumption assessed using `docker stats`:
+
+- CPU: up to 50% of 0.5 CPU
+- RAM: up to 270Mb from <10Mb
 
 ### Reference
 
@@ -383,31 +406,7 @@ The resources consumption assessed using `docker stats`:
 - CPU: up to 50% of 0.5 CPU
 - RAM: up to 150Mb from 100Mb
 
-## Solution
-
-```commandline
-╰─ make run BASE_DIR=${PWD}/benchmark
-2022-11-06T22:07:55.006 [INFO] elapsed time: 434.595 sec.
-transaction_category_id,sum_amount,num_users
-5,411126340,78431
-8,410552270,78442
-9,410413764,78567
-0,410069189,78288
-3,409259459,78225
-6,408855294,78056
-10,408843738,78339
-2,408564886,78055
-7,408210562,77881
-4,407689371,77753
-1,407210378,77939
-```
-
-The resources consumption assessed using `docker stats`:
-
-- CPU: up to 50% of 0.5 CPU
-- RAM: up to 270Mb from <10Mb
-
-## Alternative
+### Alternative
 
 ```commandline
 ╰─ make go.run BASE_DIR=${PWD}/benchmark
@@ -431,12 +430,10 @@ The resources consumption assessed using `docker stats`:
 - CPU: up to 25% of 0.5 CPU
 - RAM: up to 130Mb from <10Mb
 
-## Alternative
-
 The screenshot below illustrates a qualitative performance comparison between the Python and Go applications aggregating
 100 mil. transactions for 1 mil. users. The image shows the result of a single execution on a MacBook Pro with Apple
 M1 Pro and 16Gb of RAM without locking the process and limiting the resource quota.
 
 ![py_vs_go.png](fig/py_vs_go_1M_users.png)
 
-The Go application (on the _right_) takes roughly 15 times less time to perform aggregations compared to the Python app. 
+The Go application (on the _right_) takes roughly 15 times less time to perform aggregations compared to the Python app.
