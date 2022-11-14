@@ -119,7 +119,7 @@ The solution is provided in the [solution](solution) directory.
 
 ### How to run
 
-Requirements:
+_Requirements_:
 
 - [docker](https://docs.docker.com/get-docker/) ~> 20.10
 - [gnuMake](https://www.gnu.org/software/make/)
