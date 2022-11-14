@@ -12,31 +12,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        suffix:
-#          - '01'
-          - '02'
-#          - '03'
-    steps:
-      - id: 'checkout'
-        name: 'Checkout'
-        uses: 'actions/checkout@v3'
-        with:
-          fetch-depth: '1'
-      - id: 'test'
-        name: 'Test'
-        run: cd exercise_${{ matrix.suffix }} && make tests.ci
+#  tests:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        suffix:
+##          - '01'
+#          - '02'
+##          - '03'
+#    steps:
+#      - id: 'checkout'
+#        name: 'Checkout'
+#        uses: 'actions/checkout@v3'
+#        with:
+#          fetch-depth: '1'
+#      - id: 'test'
+#        name: 'Test'
+#        run: cd exercise_${{ matrix.suffix }} && make tests.ci
 
   release:
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
-        prerelease: true
-        title: "Release"
-        files: |
-          README.md
+    runs-on: ubuntu-latest
+    steps:
+      - id: 'release'
+        name: 'Release'
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Release"
+          files: |
+            README.md
+            LICENSE
+            solution_01/**
+            solution_02/**
+            solution_03/**

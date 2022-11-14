@@ -104,7 +104,7 @@ below when a _client_ attempts to execute a query.
 
 3. _Analyse semantics_. The transformation process takes the raw tree to generate the _query tree_ by
    making system catalog lookups to identify the tables, functions, operators referenced in the request query. The query
-   tree and the raw tree are structurally similar, but the query tree contains data types and makes
+   tree and the raw tree are structurally similar, but the query tree contains data types.
 
 4. _Re-write_. The query tree is being re-written according to the _rules_ in the system catalog. For example, if the
    query references a view, its underlying query will be embodied explicitly to the tree.
@@ -137,7 +137,7 @@ below when a _client_ attempts to execute a query.
 6. _Execute_ by traversing the plan tree and extracting required sets of rows recursively. Every time a plan's node is
    called, a row is delivered. The executor interacts with the storage system when scanning relations, performs
    query operation and returns the derived rows.
-7. The execution results are serialised and sent back to the client. Note that the results can reside in a caching layer
+7. The execution results are serialized and sent back to the client. Note that the results can reside in a caching layer
    in case of async execution. The query execution status is being updated in such case, thus the client would be able
    to make a call to retrieve the results using the query execution ID.
 
