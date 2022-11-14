@@ -1,15 +1,9 @@
-name: Tests
+name: Release
 
 on:
   push:
     branches:
       - "master"
-  pull_request:
-    types:
-      - closed
-    branches:
-      - "master"
-  workflow_dispatch:
 
 jobs:
   markdown:
@@ -21,22 +15,19 @@ jobs:
         with:
           fetch-depth: '1'
 
+      - id: 'copymd'
+        name: 'Copy Md Files to single dir'
+        run: |
+          mkdir .md
+          for p in $(ls exercise_*/README.md); do cp ${p} .md/$(dirname ${p}).md; done
+
       - id: 'markdown'
         name: 'Markdown Generation'
         uses: baileyjm02/markdown-to-pdf@v1
         with:
-          input_dir: exercise_01
-          output_dir: exercise_01
+          input_dir: .md
+          output_dir: .
           build_html: false
-
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - id: 'checkout'
-        name: 'Checkout'
-        uses: 'actions/checkout@v3'
-        with:
-          fetch-depth: '1'
 
       - id: 'release'
         name: 'Release'
@@ -44,8 +35,9 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
-          prerelease: true
+          prerelease: false
           title: "Release"
           files: |
             README.md
             LICENSE
+            exercise*.pdf
