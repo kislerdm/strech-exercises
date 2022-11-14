@@ -5,7 +5,7 @@
 * [Proposed Solution](#proposed-solution)
   * [Query](#query)
 * [Acceptance Criteria](#acceptance-criteria)
-  * [Correctness check](#correctness-check)
+  * [Correctness Check](#correctness-check)
   * [Code Quality](#code-quality)
   * [Efficiency](#efficiency)
 * [Solution](#solution)
@@ -76,7 +76,7 @@ ORDER BY sum_amount DESC;
 - The solution does not concern SQL parsing.
 - The solution is not generic, it does only concern the described problem.
 
-### Correctness check
+### Correctness Check
 
 Data quality assurance is performed according to the following test scenario.
 
@@ -138,7 +138,7 @@ _First_, set the environment:
 make setup
 ```
 
-_Second_, run the unit tests and the [data quality assessment](#code-quality):
+_Second_, run the unit tests and the [data quality assessment](#correctness-check):
 
 ```commandline
 make tests
