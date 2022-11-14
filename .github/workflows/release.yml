@@ -18,8 +18,9 @@ jobs:
       - id: 'copymd'
         name: 'Copy Md Files to single dir'
         run: |
-          mkdir .md
+          mkdir -p .md/fig
           for p in $(ls exercise_*/README.md); do cp ${p} .md/$(dirname ${p}).md; done
+          cp exercise_*/fig/* .md/fig/
 
       - id: 'markdown'
         name: 'Markdown Generation'
@@ -40,4 +41,4 @@ jobs:
           files: |
             README.md
             LICENSE
-            .md/exercise*.pdf
+            **/*.pdf
