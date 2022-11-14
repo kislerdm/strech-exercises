@@ -21,6 +21,7 @@ jobs:
           mkdir -p .md/fig
           for p in $(ls exercise_*/README.md); do cp ${p} .md/$(dirname ${p}).md; done
           cp exercise_*/fig/* .md/fig/
+          ls
 
       - id: 'markdown'
         name: 'Markdown Generation'
