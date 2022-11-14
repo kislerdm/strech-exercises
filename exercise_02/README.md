@@ -187,9 +187,9 @@ SELECT a.transaction_id
      , a.date
      , COALESCE(COUNT(DISTINCT b.transaction_id), 0) AS total
 FROM transactions AS a
-         LEFT JOIN transactions AS b ON b.user_id = a.user_id
-    AND b.date < a.date
-    AND b.date >= a.date - 7
+LEFT JOIN transactions AS b ON b.user_id = a.user_id
+                       AND b.date < a.date
+                       AND b.date >= a.date - 7
 GROUP BY 1, 2, 3
 ORDER BY 2, 3
 ;
