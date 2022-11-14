@@ -1,5 +1,16 @@
 # [DEFECT] Dimension Deduplication
 
+<!-- TOC -->
+* [Problem](#problem)
+  * [Example](#example)
+* [Expected Behaviour](#expected-behaviour)
+* [Proposed Solution](#proposed-solution)
+* [Acceptance Criteria](#acceptance-criteria)
+* [Solution](#solution)
+    * [Tests](#tests)
+* [The Logic](#the-logic)
+<!-- TOC -->
+
 ## Problem
 
 As a data engineer, I want to fix the data quality problem caused by a faulty ETL process which led to redundant records
