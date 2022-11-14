@@ -30,6 +30,11 @@ jobs:
           output_dir: .md
           build_html: false
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pdf
+          path: .md/*.pdf
+
       - id: 'release'
         name: 'Release'
         uses: "marvinpinto/action-automatic-releases@latest"
@@ -41,4 +46,3 @@ jobs:
           files: |
             README.md
             LICENSE
-            **/*.pdf
