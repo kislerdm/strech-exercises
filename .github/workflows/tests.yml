@@ -19,8 +19,8 @@ jobs:
       matrix:
         suffix:
           - '01'
-          - '02'
-          - '03'
+#          - '02'
+#          - '03'
     steps:
       - id: 'checkout'
         name: 'Checkout'
@@ -30,3 +30,13 @@ jobs:
       - id: 'test'
         name: 'Test'
         run: cd exercise_${{ matrix.suffix }} && make tests.ci
+
+  release:
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Release"
+        files: |
+          README.md
