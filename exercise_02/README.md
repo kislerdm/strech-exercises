@@ -98,8 +98,37 @@ when a _client_ attempts to execute a query.
 4. _Re-write_. The query tree is being re-written according to the _rules_ in the system catalog. For example, if the
    query references a view, its underlying query will be embodied explicitly to the tree.
 
-5. _Plan execution_. The query tree can be traversed in a plethora of ways. The optimizer assesses possible ways to
-   select the fastest.
+5. _Plan execution_. The query tree can be traversed in a plethora of ways leading to the same result. The
+   planner/optimizer assesses possible execution _paths_ in terms of execution _cost_. A path contains the least amount
+   of information for the planner to make the decision. Once the "cheapest" path is selected, a complete _plan tree_ is
+   generated for executor.
+   <br><br>Paths' assessment steps:
+    1. _Scan individual relations_ to determine if there are indices on the attributes referenced in the query. The
+       sequential scan path is always created by default. On top of that, an execution path to scan index is created for
+       every case when the attribute matches the index key. Index scan plans are also generated for indices that have a
+       sort ordering matching the "ORDER BY" clause, or a sort ordering that might be useful for merge joining.
+    2. _Analyse join conditions_ after all feasible paths have been created for every single relation. If query
+       contains "JOIN" clause for two, or more relations, the different strategies (see the table below) are considered
+       for every pair.<br>The planner prioritises joins between relations which have filtering conditions in
+       the "WHERE" clause. All possible plans are generated for every join pair considered by the planner, and the one
+       that is (estimated to be) the cheapest is chosen. Join pairs with the relations not having join clauses are
+       considered only with the absense of other choices.
+    3. _Assign filtering conditions_ form the WHERE clause to the appropriate nodes of the plan tree.
+
+|        Strategy        | Definition                                                                                                                                                                                                                                                                                                                 | Worse scenario time complexity                                                                                                                                                                                                                                                                                     | 
+|:----------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|    Nested loop join    | The right relation is scanned once for every row in the left relation.<br/>The loop is replaced with the index join if the right relation has index on the join keys: a row from the left relation is used as keys for the index scan in the right relation.                                                               | <em>O(n * m)</em>                                                                                                                                                                                                                                                                                                  |
+| Mege (sort-merge) join | 1. Joined relations are sorted on join keys;<br/>2. Both relations are scanned in parallel, and matching rows are combined as join rows.                                                                                                                                                                                   | <em>O(n * log(n) + m * log(m))</em> - in general;<br/><em>O(n + m)</em> - if both relations are sorted, or have index on join keys, i.e. the relations are only scanned;<br/><em>O(m + n * log(n))</em> - if the right relation has index and does not require sorting, whilst the left relation has to be sorted. |
+|       Hash join        | 1. The hash lookup table is prepared using the right relation;<br/>2. The hash value is calculated for each row of the left relation to match the right relation's rows using the hash table.<br/><b>Note</b>: the right relation must fit in memory, hence the smaller relation shall be used as the right join relation. | <em>O(m + n)</em>                                                                                                                                                                                                                                                                                                  |
+
+**Note**: _n_ and _m_ are the numbers of rows of the left and the right relations respectively.
+
+6. _Execute_ by traversing the plan tree and extracting required sets of rows recursively. Every time a plan's node is
+   called, a row is delivered. The executor interacts with the storage system when scanning relations, performs
+   query operation and returns the derived rows.
+7. The execution results are serialised and sent back to the client. Note that the results can reside in a caching layer
+   in case of async execution. The query execution status is being updated in such case, thus the client would be able
+   to make a call to retrieve the results using the query execution ID.
 
 ## References
 
