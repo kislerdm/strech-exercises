@@ -59,4 +59,16 @@ make tests
 
 ## The Logic
 
-TODO
+The solution follows the steps:
+
+1. Identify the rows with redundant records - the CTE `deduplication_ranges`.
+    1. Define if the given row's combination (`client_id`, `product_id`, `interest_rate`) differs from the corresponding
+       combination from the _following_ row;
+    2. Define if the given row's combination (`client_id`, `product_id`, `interest_rate`) differs from the corresponding
+       combination from the _preceding_ row.
+2. Subset the nonduplicated rows to keep them aside from deduplication - the CTE `deduplication_trivial`;
+3. Identify the beginning (`actual_from_dt`) of the ranges with duplicates - the CTE `duplication_ranges_left`
+4. Identify the end (`actual_to_dt`) of the ranges with duplicates - the CTE `duplication_ranges_right`
+5. "Collapse" the rows with duplicates by combining the beginning and the end of respective ranges. Unite the result
+   with the nonduplicated rows. See the CTE `deduplication_result`.
+6. Add the incremental ID column `sk` defined as the row number - the final "SELECT" statement.
