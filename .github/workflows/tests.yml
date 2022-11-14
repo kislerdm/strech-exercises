@@ -4,9 +4,10 @@ on:
   push:
     branches:
       - "master"
+      - "v*"
 
 jobs:
-  markdown:
+  release:
     runs-on: ubuntu-latest
     steps:
       - id: 'checkout'
